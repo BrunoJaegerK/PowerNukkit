@@ -63,6 +63,7 @@ public class BlockStateRegistry {
     private final byte[] blockPaletteBytes;
 
     private final List<String> knownStateIds;
+    private final Map<String, Integer> knownRuntimeIdsByStateId = new ConcurrentHashMap<>();
 
     //<editor-fold desc="static initialization" defaultstate="collapsed">
     static {
@@ -126,7 +127,12 @@ public class BlockStateRegistry {
 
             String[] stateIds = new String[maxRuntimeId + 1];
             for (CompoundTag tag : tags) {
-                stateIds[tag.getInt("runtimeId")] = getStateId(tag);
+                int runtimeId = tag.getInt("runtimeId");
+                String stateId = getStateId(tag);
+                if (stateIds[runtimeId] == null) {
+                    stateIds[runtimeId] = stateId;
+                }
+                knownRuntimeIdsByStateId.put(stateId, runtimeId);
             }
             loadingKnownStateIds = new ArrayList<>(stateIds.length);
             for (int runtimeId = 0; runtimeId < stateIds.length; runtimeId++) {
@@ -229,8 +235,8 @@ public class BlockStateRegistry {
     @PowerNukkitOnly
     @Since("1.5.2.0-PN")
     public int getKnownRuntimeIdByBlockStateId(String stateId) {
-        int result = knownStateIds.indexOf(stateId);
-        if (result != -1) {
+        Integer result = knownRuntimeIdsByStateId.get(stateId);
+        if (result != null) {
             return result;
         }
         BlockState state;
@@ -239,8 +245,8 @@ public class BlockStateRegistry {
         } catch (NoSuchElementException|IllegalStateException|IllegalArgumentException ignored) {
             return -1;
         }
-        String fullStateId = state.getStateId();
-        return knownStateIds.indexOf(fullStateId);
+        result = knownRuntimeIdsByStateId.get(state.getStateId());
+        return result == null ? -1 : result;
     }
 
     /**
