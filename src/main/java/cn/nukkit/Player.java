@@ -2396,11 +2396,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     }
 
                     LoginPacket loginPacket = (LoginPacket) packet;
-                    if (!this.networkSettingsRequested) {
-                        this.close("", "Invalid login sequence: network settings were not negotiated");
-                        break;
-                    }
-
                     String message;
                     if (!ProtocolInfo.SUPPORTED_PROTOCOLS.contains(loginPacket.getProtocol())) {
                         if (loginPacket.getProtocol() < ProtocolInfo.CURRENT_PROTOCOL) {
