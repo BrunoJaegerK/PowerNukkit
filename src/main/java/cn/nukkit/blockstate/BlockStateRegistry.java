@@ -316,6 +316,14 @@ public class BlockStateRegistry {
         if (originalBlock == null) {
             throw runtimeIdNotRegistered(runtimeId);
         }
+        int originalBlockId = originalBlock.getInt("blockId");
+        if (originalBlockId >= 0) {
+            return originalBlockId;
+        }
+        Integer persistenceBlockId = getBlockId(originalBlock.getString("name").toLowerCase(Locale.ENGLISH));
+        if (persistenceBlockId != null) {
+            return persistenceBlockId;
+        }
         try {
             state = buildStateFromCompound(originalBlock);
         } catch (BlockPropertyNotFoundException e) {
