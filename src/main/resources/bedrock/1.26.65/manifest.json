@@ -1,0 +1,11 @@
+{
+  "minecraftVersion": "1.26.65",
+  "networkProtocol": 2225,
+  "sourceRepository": "https://github.com/MemoriesOfTime/Nukkit-MOT",
+  "files": {
+    "runtimeItemStates": "runtime_item_states_2225.json",
+    "blockProperties": "block_properties_2193.json",
+    "itemTags": "item_tags_2225.json"
+  },
+  "notes": "The block properties dataset is versioned 2193 and is the data set used by the upstream reference for the 2225 protocol."
+}
