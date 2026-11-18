@@ -130,9 +130,8 @@ public class BlockStateRegistry {
             }
             loadingKnownStateIds = new ArrayList<>(stateIds.length);
             for (int runtimeId = 0; runtimeId < stateIds.length; runtimeId++) {
-                if (stateIds[runtimeId] == null) {
-                    throw new IllegalStateException("Missing Bedrock block runtime state " + runtimeId);
-                }
+                // Bedrock runtime palettes can contain reserved gaps. Keep their index so
+                // every following runtime ID retains its exact wire value.
                 loadingKnownStateIds.add(stateIds[runtimeId]);
             }
             knownStateIds = Collections.unmodifiableList(loadingKnownStateIds);
