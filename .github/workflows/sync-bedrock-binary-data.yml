@@ -1,0 +1,64 @@
+name: Sync Bedrock 1.26.65 binary data
+
+on:
+  push:
+    branches:
+      - modernization/bedrock-latest
+    paths:
+      - .github/workflows/sync-bedrock-binary-data.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout modernization branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Download and verify pinned protocol data
+        env:
+          UPSTREAM_COMMIT: 427bb1b7ffe2f6d4cbbd247f95e9276c89c00fa6
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          fetch_verified() {
+            local upstream_path="$1"
+            local destination="$2"
+            local expected_blob="$3"
+            local url="https://raw.githubusercontent.com/MemoriesOfTime/Nukkit-MOT/${UPSTREAM_COMMIT}/${upstream_path}"
+
+            mkdir -p "$(dirname "$destination")"
+            curl --fail --location --retry 3 --silent --show-error "$url" --output "$destination"
+
+            local actual_blob
+            actual_blob="$(git hash-object "$destination")"
+            if [[ "$actual_blob" != "$expected_blob" ]]; then
+              echo "SHA-1 mismatch for $destination: expected $expected_blob, got $actual_blob" >&2
+              exit 1
+            fi
+          }
+
+          ROOT="src/main/resources/bedrock/1.26.65"
+          fetch_verified "src/main/resources/ItemComponents/item_components_2225.nbt" "$ROOT/item_components_2225.nbt" "c4aec3d17b4ce166ebff2268ecc372ba56dc32b4"
+          fetch_verified "src/main/resources/runtime_block_states_2225.dat" "$ROOT/runtime_block_states_2225.dat" "42bd06912f9b5b42530c5fea47191c7ef3b1c49e"
+          fetch_verified "src/main/resources/biome_definitions_786.dat" "$ROOT/biome_definitions_786.dat" "129312cab9f8ced6f7d48e7de8b741f3092a8536"
+          fetch_verified "src/main/resources/entity_identifiers_582.dat" "$ROOT/entity_identifiers_582.dat" "f55b49298cfa15bf35ad9512bc47a4ed43c69ff8"
+
+          git add "$ROOT"
+          if git diff --cached --quiet; then
+            echo "All pinned Bedrock binary resources are already present."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "data(protocol): add verified Bedrock 1.26.65 binary registries"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
