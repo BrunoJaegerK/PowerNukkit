@@ -58,6 +58,8 @@ import cn.nukkit.network.Network;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.*;
 import cn.nukkit.network.protocol.types.AuthInputAction;
+import cn.nukkit.network.protocol.types.PlayerActionType;
+import cn.nukkit.network.protocol.types.PlayerBlockActionData;
 import cn.nukkit.network.protocol.types.ContainerIds;
 import cn.nukkit.network.protocol.types.NetworkInventoryAction;
 import cn.nukkit.permission.PermissibleBase;
@@ -166,6 +168,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     public int gamemode;
     public long lastBreak;
     private BlockVector3 lastBreakPosition = new BlockVector3();
+    private PlayerBlockActionData lastBlockAction;
 
     protected int windowCnt = 4;
 
@@ -2335,6 +2338,117 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         return this.server.getNetwork().unpackBatchedPackets(packet);
     }
 
+    private void handleAuthBlockBreakStart(BlockVector3 blockPos, BlockFace face) {
+        if (this.isSpectator() || face == null) {
+            return;
+        }
+
+        long currentBreak = System.currentTimeMillis();
+        Vector3 position = new Vector3(blockPos.x, blockPos.y, blockPos.z);
+        if ((this.lastBreakPosition.equals(blockPos) && currentBreak - this.lastBreak < 10)
+                || position.distanceSquared(this) > 100) {
+            return;
+        }
+
+        Block target = this.level.getBlock(position);
+        PlayerInteractEvent interactEvent = new PlayerInteractEvent(this, this.inventory.getItemInHand(), target, face,
+                target.getId() == BlockID.AIR ? Action.LEFT_CLICK_AIR : Action.LEFT_CLICK_BLOCK);
+        this.server.getPluginManager().callEvent(interactEvent);
+        if (interactEvent.isCancelled()) {
+            this.inventory.sendHeldItem(this);
+            return;
+        }
+
+        target.onTouch(this, interactEvent.getAction());
+        Block adjacent = target.getSide(face);
+        if (adjacent.getId() == BlockID.FIRE || adjacent.getId() == BlockID.SOUL_FIRE) {
+            this.level.setBlock(adjacent, Block.get(BlockID.AIR), true);
+            this.level.addLevelSoundEvent(adjacent, LevelSoundEventPacket.SOUND_EXTINGUISH_FIRE);
+            return;
+        }
+
+        if (adjacent.getId() == BlockID.SWEET_BERRY_BUSH && adjacent.getDamage() == 0) {
+            Item oldItem = interactEvent.getItem();
+            Item result = this.level.useBreakOn(adjacent, oldItem, this, true);
+            if (result != null && (this.isSurvival() || this.isAdventure())) {
+                this.foodData.updateFoodExpLevel(0.025);
+                if (!result.equals(oldItem) || result.getCount() != oldItem.getCount()) {
+                    this.inventory.setItemInHand(result);
+                    this.inventory.sendHeldItem(this.getViewers().values());
+                }
+            }
+            return;
+        }
+
+        if (!adjacent.isBlockChangeAllowed(this)) {
+            return;
+        }
+
+        if (!this.isCreative()) {
+            double breakTime = Math.ceil(target.calculateBreakTime(this.inventory.getItemInHand(), this) * 20);
+            if (breakTime > 0) {
+                LevelEventPacket event = new LevelEventPacket();
+                event.evid = LevelEventPacket.EVENT_BLOCK_START_BREAK;
+                event.x = (float) position.x;
+                event.y = (float) position.y;
+                event.z = (float) position.z;
+                event.data = (int) (65535 / breakTime);
+                this.level.addChunkPacket(position.getFloorX() >> 4, position.getFloorZ() >> 4, event);
+            }
+        }
+
+        this.breakingBlock = target;
+        this.lastBreak = currentBreak;
+        this.lastBreakPosition = blockPos;
+    }
+
+    private void handleAuthBlockBreakAbort() {
+        if (this.breakingBlock != null) {
+            LevelEventPacket event = new LevelEventPacket();
+            event.evid = LevelEventPacket.EVENT_BLOCK_STOP_BREAK;
+            event.x = (float) this.breakingBlock.x;
+            event.y = (float) this.breakingBlock.y;
+            event.z = (float) this.breakingBlock.z;
+            event.data = 0;
+            this.level.addChunkPacket((int) this.breakingBlock.x >> 4, (int) this.breakingBlock.z >> 4, event);
+        }
+        this.breakingBlock = null;
+    }
+
+    private void handleAuthBlockBreakComplete(BlockVector3 blockPos, BlockFace face) {
+        if (!this.spawned || !this.isAlive() || face == null) {
+            return;
+        }
+
+        this.resetCraftingGridType();
+        Vector3 position = new Vector3(blockPos.x, blockPos.y, blockPos.z);
+        Item handItem = this.inventory.getItemInHand();
+        Item oldItem = handItem.clone();
+        if (this.canInteract(position.add(0.5, 0.5, 0.5), this.isCreative() ? 14 : 8)
+                && (handItem = this.level.useBreakOn(position, face, handItem, this, true)) != null) {
+            if (this.isSurvival() || this.isAdventure()) {
+                this.foodData.updateFoodExpLevel(0.005);
+                if (handItem.getCount() != oldItem.getCount() || handItem.getDamage() != oldItem.getDamage()
+                        || !handItem.equals(oldItem)) {
+                    if (handItem.getId() == BlockID.AIR || oldItem.getId() == handItem.getId()) {
+                        this.inventory.setItemInHand(handItem);
+                        this.inventory.sendHeldItem(this.getViewers().values());
+                    }
+                }
+            }
+            return;
+        }
+
+        this.inventory.sendHeldItem(this);
+        if (position.distanceSquared(this) < 10000) {
+            this.level.sendBlocks(this, new Block[]{this.level.getBlock(position, false)}, UpdateBlockPacket.FLAG_ALL_PRIORITY);
+            BlockEntity blockEntity = this.level.getBlockEntityIfLoaded(this.chunk, position);
+            if (blockEntity instanceof BlockEntitySpawnable) {
+                ((BlockEntitySpawnable) blockEntity).spawnTo(this);
+            }
+        }
+    }
+
     public void handleDataPacket(DataPacket packet) {
         if (!connected) {
             return;
@@ -2651,6 +2765,41 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                             || !Float.isFinite(authInputPacket.getHeadYaw())) {
                         log.debug(this.username + ": invalid PlayerAuthInput position or rotation");
                         break;
+                    }
+
+                    if (!authInputPacket.getBlockActionData().isEmpty()) {
+                        for (PlayerBlockActionData action : authInputPacket.getBlockActionData()) {
+                            BlockVector3 actionPosition = action.getPosition();
+                            BlockFace actionFace = BlockFace.fromIndex(action.getFacing());
+
+                            boolean startNewBreak = this.lastBlockAction != null
+                                    && this.lastBlockAction.getAction() == PlayerActionType.PREDICT_DESTROY_BLOCK
+                                    && action.getAction() == PlayerActionType.CONTINUE_DESTROY_BLOCK;
+                            BlockVector3 previousPosition = this.lastBlockAction == null ? null : this.lastBlockAction.getPosition();
+                            if (!startNewBreak && previousPosition != null
+                                    && (previousPosition.x != actionPosition.x || previousPosition.y != actionPosition.y
+                                    || previousPosition.z != actionPosition.z)) {
+                                this.handleAuthBlockBreakAbort();
+                                this.handleAuthBlockBreakStart(actionPosition, actionFace);
+                            }
+
+                            switch (action.getAction()) {
+                                case START_DESTROY_BLOCK:
+                                    this.handleAuthBlockBreakStart(actionPosition, actionFace);
+                                    break;
+                                case ABORT_DESTROY_BLOCK:
+                                    this.handleAuthBlockBreakAbort();
+                                    break;
+                                case CONTINUE_DESTROY_BLOCK:
+                                    break;
+                                case PREDICT_DESTROY_BLOCK:
+                                    this.handleAuthBlockBreakComplete(actionPosition, actionFace);
+                                    break;
+                                default:
+                                    break;
+                            }
+                            this.lastBlockAction = action;
+                        }
                     }
 
                     Vector3 authNewPosition = new Vector3(authPosition.x, authPosition.y - this.getBaseOffset(), authPosition.z);
