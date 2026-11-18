@@ -470,16 +470,35 @@ public class BlockStateRegistry {
     private void registerStateId(CompoundTag block, int runtimeId) {
         String stateId = getStateId(block);
         Registration registration = new Registration(null, runtimeId, block);
-        
+        boolean stateOverload = block.getBoolean("stateOverload");
+
         Registration old = stateIdRegistration.putIfAbsent(stateId, registration);
         if (old != null && old.runtimeId != runtimeId) {
-            throw new UnsupportedOperationException("The persistence NBT registration tried to replace a runtime id. Old:"
-                    + old.runtimeId + ", New:" + runtimeId + ", State:" + stateId);
+            if (stateOverload) {
+                stateIdRegistration.put(stateId, registration);
+            } else {
+                throw new UnsupportedOperationException("The persistence NBT registration tried to replace a runtime id. Old:"
+                        + old.runtimeId + ", New:" + runtimeId + ", State:" + stateId);
+            }
         }
 
-        // Bedrock can repeat an identical state entry as a state overload. It is safe
-        // only when both entries resolve to the same runtime ID.
-        runtimeIdRegistration.put(runtimeId, registration);
+        int blockId = block.getInt("blockId");
+        if (blockId >= 0) {
+            int meta = block.getShort("data") & 0xffff;
+            BlockState legacyState = BlockState.of(blockId, meta);
+            Registration legacyRegistration = new Registration(legacyState, runtimeId, null);
+            Registration oldLegacy = blockStateRegistration.putIfAbsent(legacyState, legacyRegistration);
+            if (stateOverload) {
+                blockStateRegistration.put(legacyState, legacyRegistration);
+            } else if (oldLegacy != null && oldLegacy.runtimeId != runtimeId) {
+                throw new UnsupportedOperationException("The Bedrock palette maps " + legacyState
+                        + " to conflicting runtime IDs " + oldLegacy.runtimeId + " and " + runtimeId);
+            }
+        }
+
+        // Keep the original NBT registration for runtime-to-state lookups. Multiple
+        // persistent states may legitimately share one runtime ID.
+        runtimeIdRegistration.putIfAbsent(runtimeId, registration);
     }
     
     private void registerState(int blockId, int meta, CompoundTag originalState, int runtimeId) {
