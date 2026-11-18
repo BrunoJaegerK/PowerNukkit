@@ -169,6 +169,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     public long lastBreak;
     private BlockVector3 lastBreakPosition = new BlockVector3();
     private PlayerBlockActionData lastBlockAction;
+    private double lastBoatY;
 
     protected int windowCnt = 4;
 
@@ -2802,7 +2803,24 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         }
                     }
 
-                    Vector3 authNewPosition = new Vector3(authPosition.x, authPosition.y - this.getBaseOffset(), authPosition.z);
+                    if (this.riding instanceof EntityBoat && this.riding.isControlling(this)) {
+                        EntityBoat boat = (EntityBoat) this.riding;
+                        if (boat.getId() == authInputPacket.getPredictedVehicle()) {
+                            int belowBoat = this.level.getBlockIdAt(boat.chunk, boat.getFloorX(), boat.getFloorY() - 1, boat.getFloorZ());
+                            int maxDistance = belowBoat == BlockID.BLUE_ICE ? 16
+                                    : (belowBoat == BlockID.ICE || belowBoat == BlockID.PACKED_ICE || belowBoat == BlockID.FROSTED_ICE
+                                    || (belowBoat == BlockID.AIR && this.lastBoatY - boat.y > 1)) ? 10 : 2;
+                            this.lastBoatY = boat.y;
+                            if (this.temporalVector.setComponents(authPosition.x, authPosition.y, authPosition.z).distanceSquared(boat) < maxDistance) {
+                                boat.onInput(authPosition.x, authPosition.y, authPosition.z,
+                                        authInputPacket.getVehicleRotation().y - 90);
+                            }
+                        }
+                    }
+
+                    Vector3f mountedOffset = this.riding == null ? null : this.riding.getMountedOffset(this);
+                    double authYOffset = mountedOffset == null ? this.getBaseOffset() : mountedOffset.y;
+                    Vector3 authNewPosition = new Vector3(authPosition.x, authPosition.y - authYOffset, authPosition.z);
                     double authDistance = authNewPosition.distanceSquared(this);
                     if (authDistance > 100) {
                         this.sendPosition(this, authInputPacket.getYaw(), authInputPacket.getPitch(), MovePlayerPacket.MODE_RESET);
