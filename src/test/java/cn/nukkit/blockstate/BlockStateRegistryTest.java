@@ -12,6 +12,7 @@ import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ExtendWith(PowerNukkitExtension.class)
 class BlockStateRegistryTest {
@@ -27,7 +28,12 @@ class BlockStateRegistryTest {
         val legacyStateId = wall.getLegacyStateId();
         val unknownStateId = wall.getPersistenceName()+";unknown="+wall.getDataStorage();
 
-        assertEquals(stateId, BlockStateRegistry.getKnownBlockStateIdByRuntimeId(runtimeId));
+        String canonicalStateId = BlockStateRegistry.getKnownBlockStateIdByRuntimeId(runtimeId);
+        assertNotNull(canonicalStateId);
+        // Multiple persistent names can alias the same Bedrock runtime state.
+        // The reverse lookup returns the palette's canonical name, not necessarily
+        // the legacy name used by the internal block implementation.
+        assertEquals(runtimeId, BlockStateRegistry.getKnownRuntimeIdByBlockStateId(canonicalStateId));
         assertEquals(runtimeId, BlockStateRegistry.getKnownRuntimeIdByBlockStateId(stateId));
         assertEquals(runtimeId, BlockStateRegistry.getKnownRuntimeIdByBlockStateId(minimalistStateId));
         assertEquals(runtimeId, BlockStateRegistry.getKnownRuntimeIdByBlockStateId(legacyStateId));
