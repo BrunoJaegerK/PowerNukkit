@@ -238,7 +238,7 @@ public class StartGamePacket extends DataPacket {
         } else if (this.protocol >= ProtocolInfo.v1_16_100) {
             this.putUnsignedVarInt(0); // No custom blocks
         } else {
-            this.put(GlobalBlockPalette.getCompiledTable(this.protocol));
+            this.put(GlobalBlockPalette.BLOCK_PALETTE);
         }
 
         if (this.protocol < ProtocolInfo.v1_21_60) {
