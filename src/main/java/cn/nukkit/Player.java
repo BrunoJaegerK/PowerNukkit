@@ -2442,8 +2442,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
         this.inventory.sendHeldItem(this);
         if (position.distanceSquared(this) < 10000) {
-            this.level.sendBlocks(this, new Block[]{this.level.getBlock(position, false)}, UpdateBlockPacket.FLAG_ALL_PRIORITY);
-            BlockEntity blockEntity = this.level.getBlockEntityIfLoaded(this.chunk, position);
+            this.level.sendBlocks(new Player[]{this}, new Block[]{this.level.getBlock(position, false)}, UpdateBlockPacket.FLAG_ALL_PRIORITY);
+            BlockEntity blockEntity = this.level.getBlockEntityIfLoaded(position);
             if (blockEntity instanceof BlockEntitySpawnable) {
                 ((BlockEntitySpawnable) blockEntity).spawnTo(this);
             }
