@@ -9,32 +9,29 @@ import lombok.Value;
 @RequiredArgsConstructor(onConstructor_ = { @Deprecated })
 public class BiomeConsolidatedFeatureData {
     BiomeScatterParamData scatter;
-    @Getter(AccessLevel.NONE)
-    Indexable<String> feature;
-    @Getter(AccessLevel.NONE)
-    Indexable<String> identifier;
-    @Getter(AccessLevel.NONE)
-    Indexable<String> pass;
+    String feature;
+    String identifier;
+    undefined
     boolean internalUse;
 
     public BiomeConsolidatedFeatureData(BiomeScatterParamData scatter, String feature, String identifier, String pass,
                                         boolean internalUse) {
         this.scatter = scatter;
-        this.feature = new Unindexed<>(feature);
-        this.identifier = new Unindexed<>(identifier);
-        this.pass = new Unindexed<>(pass);
+        this.feature = feature;
+        this.identifier = identifier;
+        this.pass = pass;
         this.internalUse = internalUse;
     }
 
     public String getFeature() {
-        return feature.get();
+        return feature;
     }
 
     public String getIdentifier() {
-        return identifier.get();
+        return identifier;
     }
 
     public String getPass() {
-        return pass.get();
+        return pass;
     }
 }

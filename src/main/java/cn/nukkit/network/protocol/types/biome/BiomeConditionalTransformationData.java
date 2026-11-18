@@ -11,18 +11,17 @@ import java.util.List;
 @RequiredArgsConstructor(onConstructor_ = { @Deprecated })
 public class BiomeConditionalTransformationData {
     List<BiomeWeightedData> weightedBiomes;
-    @Getter(AccessLevel.NONE)
-    Indexable<String> conditionJson;
+    String conditionJson;
     long minPassingNeighbors;
 
     public BiomeConditionalTransformationData(List<BiomeWeightedData> weightedBiomes, String conditionJson,
                                               long minPassingNeighbors) {
         this.weightedBiomes = weightedBiomes;
-        this.conditionJson = new Unindexed<>(conditionJson);
+        this.conditionJson = conditionJson;
         this.minPassingNeighbors = minPassingNeighbors;
     }
 
     public String getConditionJson() {
-        return conditionJson.get();
+        return conditionJson;
     }
 }
