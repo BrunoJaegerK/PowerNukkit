@@ -300,7 +300,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         private final Queue<DataPacket> outbound = PlatformDependent.newMpscQueue();
         private String disconnectReason = null;
         private Player player;
-        private boolean compressionEnabled;
+        private volatile boolean compressionEnabled;
 
         @Override
         public void onSessionChangeState(RakNetState rakNetState) {
