@@ -235,6 +235,23 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
     }
 
     @Override
+    public void putPacketUncompressed(Player player, DataPacket packet) {
+        NukkitRakNetSession session = this.sessions.get(player.getSocketAddress());
+        if (session != null) {
+            packet.tryEncode();
+            session.sendPacketImmediatelyUncompressed(packet.clone());
+        }
+    }
+
+    @Override
+    public void enableCompression(Player player) {
+        NukkitRakNetSession session = this.sessions.get(player.getSocketAddress());
+        if (session != null) {
+            session.compressionEnabled = true;
+        }
+    }
+
+    @Override
     public boolean onConnectionRequest(InetSocketAddress inetSocketAddress) {
         return true;
     }
@@ -283,6 +300,7 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         private final Queue<DataPacket> outbound = PlatformDependent.newMpscQueue();
         private String disconnectReason = null;
         private Player player;
+        private boolean compressionEnabled;
 
         @Override
         public void onSessionChangeState(RakNetState rakNetState) {
@@ -306,7 +324,11 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 buffer.readBytes(packetBuffer);
 
                 try {
-                    RakNetInterface.this.network.processBatch(packetBuffer, this.inbound);
+                    if (this.compressionEnabled || !Network.isRequestNetworkSettingsBatch(packetBuffer)) {
+                        RakNetInterface.this.network.processBatch(packetBuffer, this.inbound);
+                    } else {
+                        RakNetInterface.this.network.processUncompressedBatch(packetBuffer, this.inbound);
+                    }
                 } catch (ProtocolException e) {
                     this.disconnect("Sent malformed packet");
                     log.error("Unable to process batch packet", e);
@@ -356,7 +378,10 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             }
 
             try {
-                this.sendPacket(Network.deflateRaw(batched.getBuffer(), network.getServer().networkCompressionLevel));
+                byte[] payload = this.compressionEnabled
+                        ? Network.deflateRaw(batched.getBuffer(), network.getServer().networkCompressionLevel)
+                        : batched.getBuffer();
+                this.sendPacket(payload);
             } catch (IOException e) {
                 log.error("Unable to compress batched packets", e);
             }
@@ -377,7 +402,9 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             batched.putUnsignedVarInt(buf.length);
             batched.put(buf);
             try {
-                byte[] payload = Network.deflateRaw(batched.getBuffer(), network.getServer().networkCompressionLevel);
+                byte[] payload = this.compressionEnabled
+                        ? Network.deflateRaw(batched.getBuffer(), network.getServer().networkCompressionLevel)
+                        : batched.getBuffer();
                 ByteBuf byteBuf = ByteBufAllocator.DEFAULT.ioBuffer(1 + payload.length);
                 byteBuf.writeByte(0xfe);
                 byteBuf.writeBytes(payload);
@@ -387,6 +414,20 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             }
         }
         
+        private void sendPacketImmediatelyUncompressed(DataPacket packet) {
+            BinaryStream batched = new BinaryStream();
+            Preconditions.checkArgument(!(packet instanceof BatchPacket), "Cannot batch BatchPacket");
+            Preconditions.checkState(packet.isEncoded, "Packet should have already been encoded");
+            byte[] buf = packet.getBuffer();
+            batched.putUnsignedVarInt(buf.length);
+            batched.put(buf);
+            byte[] payload = batched.getBuffer();
+            ByteBuf byteBuf = ByteBufAllocator.DEFAULT.ioBuffer(1 + payload.length);
+            byteBuf.writeByte(0xfe);
+            byteBuf.writeBytes(payload);
+            this.raknet.send(byteBuf, RakNetPriority.IMMEDIATE);
+        }
+
         private void sendResourcePacket(DataPacket packet) {
             BinaryStream batched = new BinaryStream();
             Preconditions.checkArgument(!(packet instanceof BatchPacket), "Cannot batch BatchPacket");

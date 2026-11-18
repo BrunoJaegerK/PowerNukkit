@@ -17,12 +17,13 @@ public interface ProtocolInfo {
     /**
      * Actual Minecraft: PE protocol version
      */
-    int CURRENT_PROTOCOL = dynamic(662);
+    int v1_26_60 = 2225;
+    int CURRENT_PROTOCOL = dynamic(v1_26_60);
 
     List<Integer> SUPPORTED_PROTOCOLS = Ints.asList(CURRENT_PROTOCOL);
 
-    String MINECRAFT_VERSION = dynamic("v1.20.70");
-    String MINECRAFT_VERSION_NETWORK = dynamic("1.20.70");
+    String MINECRAFT_VERSION = dynamic("v1.26.65");
+    String MINECRAFT_VERSION_NETWORK = dynamic("1.26.65");
 
     byte LOGIN_PACKET = 0x01;
     byte PLAY_STATUS_PACKET = 0x02;
@@ -161,6 +162,7 @@ public interface ProtocolInfo {
     byte ANVIL_DAMAGE_PACKET = (byte) 0x8d;
     byte COMPLETED_USING_ITEM_PACKET = (byte) 0x8e;
     byte NETWORK_SETTINGS_PACKET = (byte) 0x8f;
+    byte REQUEST_NETWORK_SETTINGS_PACKET = (byte) 0xc1;
     byte PLAYER_AUTH_INPUT_PACKET = (byte) 0x90;
     @Since("1.3.0.0-PN") byte CREATIVE_CONTENT_PACKET = (byte) 0x91;
     @Since("1.3.0.0-PN") byte PLAYER_ENCHANT_OPTIONS_PACKET = (byte) 0x92;

@@ -160,6 +160,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     public boolean loggedIn = false;
     @Since("1.4.0.0-PN") public boolean locallyInitialized = false;
     private boolean verified = false;
+    private boolean networkSettingsRequested;
     private int unverifiedPackets;
     public int gamemode;
     public long lastBreak;
@@ -1176,6 +1177,28 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             }
 
             this.interfaz.putPacket(this, packet, false, false);
+        }
+        return true;
+    }
+
+    /** Sends an uncompressed packet during the initial Bedrock network-settings handshake. */
+    public boolean dataPacketUncompressed(DataPacket packet) {
+        if (!this.connected) {
+            return false;
+        }
+
+        try (Timing ignored = Timings.getSendDataPacketTiming(packet)) {
+            DataPacketSendEvent ev = new DataPacketSendEvent(this, packet);
+            this.server.getPluginManager().callEvent(ev);
+            if (ev.isCancelled()) {
+                return false;
+            }
+
+            if (log.isTraceEnabled() && !server.isIgnoredPacket(packet.getClass())) {
+                log.trace("Outbound {} (uncompressed): {}", this.getName(), packet);
+            }
+
+            this.interfaz.putPacketUncompressed(this, packet);
         }
         return true;
     }
@@ -2316,7 +2339,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             return;
         }
 
-        if (!verified && packet.pid() != ProtocolInfo.LOGIN_PACKET && packet.pid() != ProtocolInfo.BATCH_PACKET) {
+        if (!verified && packet.pid() != ProtocolInfo.LOGIN_PACKET && packet.pid() != ProtocolInfo.REQUEST_NETWORK_SETTINGS_PACKET && packet.pid() != ProtocolInfo.BATCH_PACKET) {
             log.warn("Ignoring {} from {} due to player not verified yet", packet.getClass().getSimpleName(), getAddress());
             if (unverifiedPackets++ > 100) {
                 this.close("", "Too many failed login attempts");
@@ -2343,12 +2366,39 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
             packetswitch:
             switch (packet.pid()) {
+                case ProtocolInfo.REQUEST_NETWORK_SETTINGS_PACKET:
+                    if (this.networkSettingsRequested) {
+                        this.close("", "Duplicate network settings request");
+                        break;
+                    }
+
+                    RequestNetworkSettingsPacket settingsRequest = (RequestNetworkSettingsPacket) packet;
+                    if (!ProtocolInfo.SUPPORTED_PROTOCOLS.contains(settingsRequest.protocolVersion)) {
+                        this.close("", "You are running an unsupported Minecraft version");
+                        break;
+                    }
+
+                    NetworkSettingsPacket settingsResponse = new NetworkSettingsPacket();
+                    settingsResponse.compressionThreshold = 0;
+                    settingsResponse.compressionAlgorithm = 0; // ZLIB
+                    if (!this.dataPacketUncompressed(settingsResponse)) {
+                        this.close("", "Unable to negotiate network compression");
+                        break;
+                    }
+                    this.networkSettingsRequested = true;
+                    this.interfaz.enableCompression(this);
+                    break;
+
                 case ProtocolInfo.LOGIN_PACKET:
                     if (this.loggedIn) {
                         break;
                     }
 
                     LoginPacket loginPacket = (LoginPacket) packet;
+                    if (!this.networkSettingsRequested) {
+                        this.close("", "Invalid login sequence: network settings were not negotiated");
+                        break;
+                    }
 
                     String message;
                     if (!ProtocolInfo.SUPPORTED_PROTOCOLS.contains(loginPacket.getProtocol())) {
