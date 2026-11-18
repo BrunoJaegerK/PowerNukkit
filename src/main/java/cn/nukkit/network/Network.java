@@ -289,6 +289,7 @@ public class Network {
                 int packetId = header & 0x3ff;
                 DataPacket pk = this.getPacket(packetId);
                 if (pk != null) {
+                    pk.protocol = ProtocolInfo.CURRENT_PROTOCOL;
                     pk.setBuffer(buf, buf.length - bais.available());
                     try {
                         pk.decode();
@@ -383,6 +384,7 @@ public class Network {
         this.packetPool = new Class[256];
         this.registerPacket(ProtocolInfo.NETWORK_SETTINGS_PACKET, NetworkSettingsPacket.class);
         this.registerPacket(ProtocolInfo.REQUEST_NETWORK_SETTINGS_PACKET, RequestNetworkSettingsPacket.class);
+        this.registerPacket(ProtocolInfo.PLAYER_AUTH_INPUT_PACKET, PlayerAuthInputPacket.class);
 
         this.registerPacket(ProtocolInfo.ADD_ENTITY_PACKET, AddEntityPacket.class);
         this.registerPacket(ProtocolInfo.ADD_ITEM_ENTITY_PACKET, AddItemEntityPacket.class);

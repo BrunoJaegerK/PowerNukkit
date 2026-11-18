@@ -15,6 +15,9 @@ public abstract class DataPacket extends BinaryStream implements Cloneable {
     public static final DataPacket[] EMPTY_ARRAY = new DataPacket[0];
 
     public volatile boolean isEncoded = false;
+
+    /** Protocol version used to decode or encode this packet. */
+    public int protocol = ProtocolInfo.CURRENT_PROTOCOL;
     private int channel = 0;
 
     public RakNetReliability reliability = RakNetReliability.RELIABLE_ORDERED;

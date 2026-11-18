@@ -57,6 +57,7 @@ import cn.nukkit.nbt.tag.*;
 import cn.nukkit.network.Network;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.*;
+import cn.nukkit.network.protocol.types.AuthInputAction;
 import cn.nukkit.network.protocol.types.ContainerIds;
 import cn.nukkit.network.protocol.types.NetworkInventoryAction;
 import cn.nukkit.permission.PermissibleBase;
@@ -2643,6 +2644,98 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         ((EntityMinecartAbstract) riding).setCurrentSpeed(ipk.motionY);
                     }
                     break;
+                case ProtocolInfo.PLAYER_AUTH_INPUT_PACKET:
+                    PlayerAuthInputPacket authInputPacket = (PlayerAuthInputPacket) packet;
+                    if (!this.spawned || this.teleportPosition != null || authInputPacket.getPosition() == null) {
+                        break;
+                    }
+
+                    Vector3f authPosition = authInputPacket.getPosition();
+                    if (!Float.isFinite(authPosition.x) || !Float.isFinite(authPosition.y) || !Float.isFinite(authPosition.z)
+                            || !Float.isFinite(authInputPacket.getYaw()) || !Float.isFinite(authInputPacket.getPitch())
+                            || !Float.isFinite(authInputPacket.getHeadYaw())) {
+                        log.debug(this.username + ": invalid PlayerAuthInput position or rotation");
+                        break;
+                    }
+
+                    Vector3 authNewPosition = new Vector3(authPosition.x, authPosition.y - this.getBaseOffset(), authPosition.z);
+                    double authDistance = authNewPosition.distanceSquared(this);
+                    if (authDistance > 100) {
+                        this.sendPosition(this, authInputPacket.getYaw(), authInputPacket.getPitch(), MovePlayerPacket.MODE_RESET);
+                    } else {
+                        boolean authRevert = false;
+                        if (!this.isAlive()) {
+                            authRevert = true;
+                            this.forceMovement = new Vector3(this.x, this.y, this.z);
+                        }
+
+                        if (this.forceMovement != null && (authNewPosition.distanceSquared(this.forceMovement) > 0.1 || authRevert)) {
+                            this.sendPosition(this.forceMovement, authInputPacket.getYaw(), authInputPacket.getPitch(), MovePlayerPacket.MODE_RESET);
+                        } else if (authDistance != 0
+                                || authInputPacket.getYaw() % 360 != this.yaw
+                                || authInputPacket.getPitch() % 360 != this.pitch) {
+                            float authYaw = authInputPacket.getYaw() % 360;
+                            float authPitch = authInputPacket.getPitch() % 360;
+                            if (authYaw < 0) {
+                                authYaw += 360;
+                            }
+                            this.setRotation(authYaw, authPitch);
+                            this.newPosition = authNewPosition;
+                            this.positionChanged = true;
+                            this.forceMovement = null;
+                        }
+                    }
+
+                    if (authInputPacket.getInputData().contains(AuthInputAction.START_SPRINTING)) {
+                        PlayerToggleSprintEvent sprintEvent = new PlayerToggleSprintEvent(this, true);
+                        if ((this.foodData.getLevel() <= 6 && !this.getAdventureSettings().get(Type.FLYING))
+                                || this.riding != null || this.sleeping != null || this.hasEffect(Effect.BLINDNESS)
+                                || (this.isSneaking() && !authInputPacket.getInputData().contains(AuthInputAction.STOP_SNEAKING))) {
+                            sprintEvent.setCancelled(true);
+                        }
+                        this.server.getPluginManager().callEvent(sprintEvent);
+                        if (sprintEvent.isCancelled()) {
+                            this.needSendData = true;
+                        } else {
+                            this.setSprinting(true, false);
+                        }
+                        this.setUsingItem(false);
+                    }
+                    if (authInputPacket.getInputData().contains(AuthInputAction.STOP_SPRINTING)) {
+                        PlayerToggleSprintEvent sprintEvent = new PlayerToggleSprintEvent(this, false);
+                        this.server.getPluginManager().callEvent(sprintEvent);
+                        if (sprintEvent.isCancelled()) {
+                            this.needSendData = true;
+                        } else {
+                            this.setSprinting(false, false);
+                        }
+                    }
+                    if (authInputPacket.getInputData().contains(AuthInputAction.START_SNEAKING)) {
+                        PlayerToggleSneakEvent sneakEvent = new PlayerToggleSneakEvent(this, true);
+                        if (this.riding != null || this.sleeping != null) {
+                            sneakEvent.setCancelled(true);
+                        }
+                        this.server.getPluginManager().callEvent(sneakEvent);
+                        if (sneakEvent.isCancelled()) {
+                            this.needSendData = true;
+                        } else {
+                            this.setSneaking(true);
+                        }
+                    }
+                    if (authInputPacket.getInputData().contains(AuthInputAction.STOP_SNEAKING)) {
+                        PlayerToggleSneakEvent sneakEvent = new PlayerToggleSneakEvent(this, false);
+                        this.server.getPluginManager().callEvent(sneakEvent);
+                        if (sneakEvent.isCancelled()) {
+                            this.needSendData = true;
+                        } else {
+                            this.setSneaking(false);
+                        }
+                    }
+                    if (authInputPacket.getInputData().contains(AuthInputAction.START_JUMPING)) {
+                        this.server.getPluginManager().callEvent(new PlayerJumpEvent(this));
+                    }
+                    break;
+
                 case ProtocolInfo.MOVE_PLAYER_PACKET:
                     if (this.teleportPosition != null) {
                         break;
