@@ -2,6 +2,7 @@ package cn.nukkit.network.protocol;
 
 import cn.nukkit.api.Since;
 import cn.nukkit.item.RuntimeItems;
+import cn.nukkit.level.GlobalBlockPalette;
 import cn.nukkit.nbt.NBTIO;
 import cn.nukkit.nbt.tag.CompoundTag;
 import cn.nukkit.network.protocol.data.BedrockDataRegistry;
@@ -237,7 +238,7 @@ public class StartGamePacket extends DataPacket {
         } else if (this.protocol >= ProtocolInfo.v1_16_100) {
             this.putUnsignedVarInt(0); // No custom blocks
         } else {
-            this.put(RuntimeItems.getRuntimeMapping().getItemDataPalette());
+            this.put(GlobalBlockPalette.getCompiledTable(this.protocol));
         }
 
         if (this.protocol < ProtocolInfo.v1_21_60) {
