@@ -2,7 +2,7 @@
 
 ## Objective
 
-Modernize this repository while preserving PowerNukkit's existing behavior and plugin API wherever possible. The target is the newest Bedrock protocol that can be implemented and tested reliably, not a version-number-only bump.
+Modernize this repository while preserving PowerNukkit's existing behavior and plugin API wherever possible. The target is Bedrock 1.26.65 / network protocol 2225, verified against the current release documentation; support is not complete until real-client login and gameplay tests pass.
 
 ## Source baselines inspected
 
@@ -18,6 +18,14 @@ Modernize this repository while preserving PowerNukkit's existing behavior and p
 4. Treat the PM1E fork as the source of truth for the user's requested mob-AI and vanilla behavior additions. Revalidate each behavior in code and port it with tests.
 5. Use Nukkit-MOT as a reference for newer protocol/networking, Bedrock data, blocks/items, entities, world generation, and server systems. Respect its license and preserve required notices when adapting code.
 6. Never advertise a protocol or feature as supported until packet negotiation, login, gameplay, persistence, and regression tests pass.
+
+
+## Current implementation status (2026-11-18)
+
+- Target: Bedrock 1.26.65, network protocol 2225.
+- Implemented: initial network-settings handshake, ZLIB prefix negotiation, version-aware PlayerAuthInput decoding, movement and common player input states, block-breaking actions, predicted boat input, modern protocol version constants, and additional packet identifiers.
+- Verified: Java 8 Maven build succeeded and all 11,427 tests passed at commit `20d9e1619c37d67282f5f763458c627048dde058`. The CI artifact was uploaded by the `PowerNukkit v1.X` workflow.
+- Not yet verified: a real 1.26.65 client login and gameplay session. StartGame serialization and the modern block/item/biome/entity data set are still legacy and are the next critical compatibility gates.
 
 ## PM1E behavior inventory to port and verify
 
@@ -50,7 +58,7 @@ Modernize this repository while preserving PowerNukkit's existing behavior and p
 
 ## Acceptance criteria
 
-- A clean build from this branch using the documented JDK and Maven wrapper.
+- A clean build from this branch using the documented JDK; the current Java 8 baseline has passed, and Java 17 migration remains a separate toolchain task.
 - Existing PowerNukkit regression tests pass or have explicitly documented intentional changes.
 - New tests cover each imported gameplay behavior and relevant edge cases.
 - Supported Bedrock client versions are stated from tested protocol constants, not inferred from upstream README text.

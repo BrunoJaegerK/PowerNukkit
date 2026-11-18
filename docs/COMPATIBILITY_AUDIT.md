@@ -13,7 +13,7 @@ Audit date: 2026-11-18 (revalidated against Bedrock 1.26.65)
 
 ### Java and build
 
-- PowerNukkit currently targets Java 8 and uses an old GitHub Actions workflow with checkout/cache/upload-artifact v1 and setup-java v1.
+- PowerNukkit `master` targets Java 8. The modernization branch updates the legacy GitHub Actions workflow to current checkout/setup-java actions and v4 cache/artifact actions; the branch's baseline Maven build and full test suite now pass on Java 8.
 - PetteriM1Edition targets Java 17 and uses newer Netty, Log4j, NetherNet and data-channel dependencies.
 - Nukkit-MOT targets Java 17 in Maven and its README instructs Java 21 or newer at runtime. Its current transport stack includes NetherNet/WebRTC as well as RakNet.
 - The modernization branch now runs its baseline build on Java 8 because the existing source/annotation-processing toolchain is Java 8-era. A Java 17 trial reached compilation but failed inside the legacy Lombok/Javac integration (`JavacProcessingEnvironment.discoveredProcs` is not open). The Java 17 migration must upgrade the Lombok dependency and Delombok plugin/toolchain coherently before switching the required build runtime.
@@ -35,26 +35,26 @@ Audit date: 2026-11-18 (revalidated against Bedrock 1.26.65)
 
 ## Immediate implementation order
 
-1. Establish whether the existing PowerNukkit code compiles and tests pass under the branch CI.
-2. Extract a protocol/data manifest from each upstream (protocol version, packet IDs, palettes, item components, entity identifiers, resource hashes).
-3. Select the target Bedrock protocol based on current upstream client protocol data and successful end-to-end login tests.
-4. Port transport and protocol as one vertical slice: handshake, login, resource-pack negotiation, start game, chunk delivery, movement and disconnect.
-5. Port registries/resources as a versioned data set, with validation for duplicate IDs, missing runtime mappings and malformed NBT/JSON.
+1. Baseline CI now compiles and passes the existing Maven suite on Java 8.
+2. Protocol constants now include the PM1E version table and 33 additional modern Bedrock packet IDs.
+3. Initial transport handshake and PlayerAuthInput gameplay path are implemented and compile/test successfully.
+4. Remaining protocol work: resource-pack negotiation, StartGame schema, modern chunk/subchunk packets, and real-client login/play validation.
+5. Remaining data work: runtime block states, item states/components, biome definitions, entity identifiers, recipes, creative inventory and tags must be migrated as matched versioned resources.
 6. Port shared entity AI infrastructure before PM1E's Enderman, Shulker, Dragon and Villager behavior.
 7. Integrate natural spawning and the remaining vanilla mechanics, then run persistence and plugin-compatibility tests.
 
 ## Explicitly not marked complete
 
-- The branch now contains the Bedrock `1.26.65` protocol constant and the initial `RequestNetworkSettings` / `NetworkSettings` compression-negotiation slice. This is not yet proof of a complete login or gameplay session; resource-pack negotiation, StartGame, chunk delivery, movement, and the full play loop still require client integration tests.
+- The branch now targets Bedrock `1.26.65` / protocol `2225`, includes the uncompressed `RequestNetworkSettings` handshake, ZLIB `NetworkSettings` response and modern compression prefix, plus `PlayerAuthInputPacket` decoding. Movement, sprint/sneak, jump, glide, swim, spin attack, flight, block-break actions, and predicted boat movement are wired into PowerNukkit's existing player lifecycle. A real Bedrock client login/play test is still outstanding.
 - No PM1E entity AI has been ported yet.
 - No Nukkit-MOT transport or packet implementation has been transplanted yet.
-- No compatibility or gameplay tests have been run yet.
-- The old `maven.yml` workflow initially failed before checkout because it used retired `actions/cache@v1` and `actions/upload-artifact@v1`; those actions were upgraded to v4 and checkout/setup-java to v4. A fresh run is pending.
+- The existing Maven suite passed **11,427 tests** with zero failures/errors at commit `20d9e1619c37d67282f5f763458c627048dde058`; the new handshake-detection test is included. No real Bedrock client integration test has been run yet.
+- The old `maven.yml` workflow initially failed before checkout because it used retired `actions/cache@v1` and `actions/upload-artifact@v1`; it now uses checkout/setup-java v5 and cache/upload-artifact v4. The Java 8 Maven build and artifact upload succeeded at commit `20d9e1619c37d67282f5f763458c627048dde058`.
 - The first Java 17 modernization build failed during compilation due to the legacy Lombok/Javac integration, not because of a source compilation diagnostic. The modernization workflow has been moved to Java 8 temporarily to establish a valid baseline before upgrading the compiler toolchain.
 
 ### Protocol version verified from source
 
-- PowerNukkit currently declares protocol `662` and Minecraft network version `1.20.70` in `ProtocolInfo.java`.
-- PetteriM1Edition and Nukkit-MOT source branches inspected previously declare Bedrock `1.26.60` / protocol enum `v1_26_60`.
+- PowerNukkit `master` declared protocol `662` and Minecraft network version `1.20.70`; the modernization branch now declares protocol `2225` and Minecraft version `1.26.65`.
+- PetteriM1Edition and Nukkit-MOT source branches inspected previously declare Bedrock `1.26.60` / protocol enum `v1_26_60`; their wire protocol is `2225`, shared by Bedrock `1.26.65`.
 - Mojang's protocol documentation records Bedrock `1.26.65` as released on 2026-11-16 with network protocol `2225`; the intervening `1.26.61`, `1.26.62`, and `1.26.65` entries keep protocol `2225` and show no packet schema changes. Therefore the migration target is now `1.26.65` / protocol `2225`, while upstream `1.26.60` remains a useful packet-schema baseline.
 - This confirms the primary upgrade is not a small patch: it is a multi-generation jump from Bedrock 1.20.70 / protocol 662 to 1.26.65 / protocol 2225.
