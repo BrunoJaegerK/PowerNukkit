@@ -471,10 +471,13 @@ public class BlockStateRegistry {
         Registration registration = new Registration(null, runtimeId, block);
         
         Registration old = stateIdRegistration.putIfAbsent(stateId, registration);
-        if (old != null && !old.equals(registration)) {
-            throw new UnsupportedOperationException("The persistence NBT registration tried to replaced a runtime id. Old:"+old+", New:"+runtimeId+", State:"+stateId);
+        if (old != null && old.runtimeId != runtimeId) {
+            throw new UnsupportedOperationException("The persistence NBT registration tried to replace a runtime id. Old:"
+                    + old.runtimeId + ", New:" + runtimeId + ", State:" + stateId);
         }
-        
+
+        // Bedrock can repeat an identical state entry as a state overload. It is safe
+        // only when both entries resolve to the same runtime ID.
         runtimeIdRegistration.put(runtimeId, registration);
     }
     
