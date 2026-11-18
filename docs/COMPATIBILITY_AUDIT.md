@@ -45,7 +45,7 @@ Audit date: 2026-11-18 (revalidated against Bedrock 1.26.65)
 
 ## Explicitly not marked complete
 
-- No Bedrock protocol upgrade has been committed yet.
+- The branch now contains the Bedrock `1.26.65` protocol constant and the initial `RequestNetworkSettings` / `NetworkSettings` compression-negotiation slice. This is not yet proof of a complete login or gameplay session; resource-pack negotiation, StartGame, chunk delivery, movement, and the full play loop still require client integration tests.
 - No PM1E entity AI has been ported yet.
 - No Nukkit-MOT transport or packet implementation has been transplanted yet.
 - No compatibility or gameplay tests have been run yet.
