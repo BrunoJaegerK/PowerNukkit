@@ -147,7 +147,7 @@ public class BlockStateRegistry {
             int blockId = state.getInt("blockId");
             int runtimeId = state.getInt("runtimeId");
             String name = state.getString("name").toLowerCase();
-            if (name.equals("minecraft:unknown")) {
+            if (name.equals("minecraft:unknown") || blockId == BlockID.INFO_UPDATE) {
                 infoUpdateRuntimeId = runtimeId;
             }
             
