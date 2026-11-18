@@ -3,7 +3,6 @@ package cn.nukkit.network.protocol;
 import cn.nukkit.block.Block;
 import cn.nukkit.level.GlobalBlockPalette;
 import cn.nukkit.network.protocol.types.biome.*;
-import cn.nukkit.utils.Utils;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
@@ -13,6 +12,10 @@ import lombok.ToString;
 
 import java.awt.*;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,8 +43,15 @@ public class BiomeDefinitionListPacket extends DataPacket {
     static {
         try {
             Type type = new TypeToken<LinkedHashMap<String, BiomeDefinitionData>>() {}.getType();
-            BIOME_DEFINITIONS = GSON.fromJson(
-                    Utils.loadJsonResource("bedrock/1.26.65/stripped_biome_definitions_844.json"), type);
+            try (InputStream stream = BiomeDefinitionListPacket.class.getClassLoader()
+                    .getResourceAsStream("bedrock/1.26.65/stripped_biome_definitions_844.json")) {
+                if (stream == null) {
+                    throw new IllegalStateException("Missing Bedrock 1.26.65 biome definitions resource");
+                }
+                try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+                    BIOME_DEFINITIONS = GSON.fromJson(reader, type);
+                }
+            }
             BiomeDefinitionListPacket packet = new BiomeDefinitionListPacket();
             packet.protocol = ProtocolInfo.CURRENT_PROTOCOL;
             packet.biomeDefinitions = BIOME_DEFINITIONS;
@@ -70,7 +80,7 @@ public class BiomeDefinitionListPacket extends DataPacket {
 
     @Override
     public void decode() {
-        this.decodeUnsupported();
+        // This packet is serverbound only in the current protocol.
     }
 
     @Override
