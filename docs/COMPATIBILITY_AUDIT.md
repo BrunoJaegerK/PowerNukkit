@@ -1,6 +1,6 @@
 # Compatibility Audit
 
-Audit date: 2026-11-18
+Audit date: 2026-11-18 (revalidated against Bedrock 1.26.65)
 
 ## Repository state
 
@@ -16,7 +16,7 @@ Audit date: 2026-11-18
 - PowerNukkit currently targets Java 8 and uses an old GitHub Actions workflow with checkout/cache/upload-artifact v1 and setup-java v1.
 - PetteriM1Edition targets Java 17 and uses newer Netty, Log4j, NetherNet and data-channel dependencies.
 - Nukkit-MOT targets Java 17 in Maven and its README instructs Java 21 or newer at runtime. Its current transport stack includes NetherNet/WebRTC as well as RakNet.
-- The modernization branch adds a separate Java 17 CI workflow first; it intentionally does not change PowerNukkit's compiler target or dependency graph before a baseline build is measured.
+- The modernization branch now runs its baseline build on Java 8 because the existing source/annotation-processing toolchain is Java 8-era. A Java 17 trial reached compilation but failed inside the legacy Lombok/Javac integration (`JavacProcessingEnvironment.discoveredProcs` is not open). The Java 17 migration must upgrade the Lombok dependency and Delombok plugin/toolchain coherently before switching the required build runtime.
 
 ### Entity AI
 
@@ -49,11 +49,12 @@ Audit date: 2026-11-18
 - No PM1E entity AI has been ported yet.
 - No Nukkit-MOT transport or packet implementation has been transplanted yet.
 - No compatibility or gameplay tests have been run yet.
-- The added CI workflow is a baseline safety net; its first run determines the actual build status.
+- The old `maven.yml` workflow initially failed before checkout because it used retired `actions/cache@v1` and `actions/upload-artifact@v1`; those actions were upgraded to v4 and checkout/setup-java to v4. A fresh run is pending.
+- The first Java 17 modernization build failed during compilation due to the legacy Lombok/Javac integration, not because of a source compilation diagnostic. The modernization workflow has been moved to Java 8 temporarily to establish a valid baseline before upgrading the compiler toolchain.
 
 ### Protocol version verified from source
 
 - PowerNukkit currently declares protocol `662` and Minecraft network version `1.20.70` in `ProtocolInfo.java`.
-- PetteriM1Edition currently declares `v1_26_60` as its current protocol and `1.26.60` as its network version.
-- Nukkit-MOT currently declares `v1_26_60` as its current protocol and resolves its network version from that protocol.
-- This confirms the primary upgrade is not a small patch: the target is a multi-generation protocol jump from Bedrock 1.20.70 to 1.26.60 (the current version represented by both reference branches at the inspected commits).
+- PetteriM1Edition and Nukkit-MOT source branches inspected previously declare Bedrock `1.26.60` / protocol enum `v1_26_60`.
+- Mojang's protocol documentation records Bedrock `1.26.65` as released on 2026-11-16 with network protocol `2225`; the intervening `1.26.61`, `1.26.62`, and `1.26.65` entries keep protocol `2225` and show no packet schema changes. Therefore the migration target is now `1.26.65` / protocol `2225`, while upstream `1.26.60` remains a useful packet-schema baseline.
+- This confirms the primary upgrade is not a small patch: it is a multi-generation jump from Bedrock 1.20.70 / protocol 662 to 1.26.65 / protocol 2225.
