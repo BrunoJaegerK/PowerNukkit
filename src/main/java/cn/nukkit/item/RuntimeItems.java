@@ -60,7 +60,7 @@ public class RuntimeItems {
         for (BedrockDataRegistry.RuntimeItemState entry : registry.getRuntimeItems()) {
             String identifier = entry.getName();
             int runtimeId = entry.getId();
-            namespaceNetworkMap.put(runtimeId, identifier);
+            networkNamespaceMap.put(runtimeId, identifier);
             namespaceNetworkMap.put(identifier, runtimeId);
 
             LegacyMapping mapping = legacyMappings.get(identifier);
