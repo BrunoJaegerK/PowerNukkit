@@ -1,6 +1,12 @@
 name: PowerNukkit v1.X
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - modernization/bedrock-latest
+  pull_request:
+    branches-ignore:
+      - modernization/bedrock-latest
 
 jobs:
   build:
