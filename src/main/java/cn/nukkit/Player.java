@@ -2896,6 +2896,97 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     if (authInputPacket.getInputData().contains(AuthInputAction.START_JUMPING)) {
                         this.server.getPluginManager().callEvent(new PlayerJumpEvent(this));
                     }
+                    if (authInputPacket.getInputData().contains(AuthInputAction.START_GLIDING)) {
+                        PlayerToggleGlideEvent glideEvent = new PlayerToggleGlideEvent(this, true);
+                        this.server.getPluginManager().callEvent(glideEvent);
+                        if (glideEvent.isCancelled()) {
+                            this.sendData(this);
+                        } else {
+                            this.setGliding(true);
+                        }
+                    }
+                    if (authInputPacket.getInputData().contains(AuthInputAction.STOP_GLIDING)) {
+                        PlayerToggleGlideEvent glideEvent = new PlayerToggleGlideEvent(this, false);
+                        this.server.getPluginManager().callEvent(glideEvent);
+                        if (glideEvent.isCancelled()) {
+                            this.sendData(this);
+                        } else {
+                            this.setGliding(false);
+                        }
+                    }
+                    if (authInputPacket.getInputData().contains(AuthInputAction.START_SWIMMING)) {
+                        PlayerToggleSwimEvent swimEvent = new PlayerToggleSwimEvent(this, true);
+                        this.server.getPluginManager().callEvent(swimEvent);
+                        if (swimEvent.isCancelled()) {
+                            this.sendData(this);
+                        } else {
+                            this.setSwimming(true);
+                        }
+                        this.setUsingItem(false);
+                    }
+                    if (authInputPacket.getInputData().contains(AuthInputAction.STOP_SWIMMING)) {
+                        PlayerToggleSwimEvent swimEvent = new PlayerToggleSwimEvent(this, false);
+                        this.server.getPluginManager().callEvent(swimEvent);
+                        if (swimEvent.isCancelled()) {
+                            this.sendData(this);
+                        } else {
+                            this.setSwimming(false);
+                        }
+                    }
+                    if (authInputPacket.getInputData().contains(AuthInputAction.START_SPIN_ATTACK)) {
+                        Item trident = this.inventory.getItemInHand();
+                        int riptideLevel = trident.getId() == ItemID.TRIDENT
+                                ? trident.getEnchantmentLevel(Enchantment.ID_TRIDENT_RIPTIDE) : 0;
+                        if (riptideLevel < 1 || !(this.isTouchingWater()
+                                || (this.getLevel().isRaining() && this.getLevel().canBlockSeeSky(this)))) {
+                            this.sendPosition(this, this.yaw, this.pitch, MovePlayerPacket.MODE_RESET);
+                        } else {
+                            PlayerToggleSpinAttackEvent spinEvent = new PlayerToggleSpinAttackEvent(this, true);
+                            this.server.getPluginManager().callEvent(spinEvent);
+                            if (spinEvent.isCancelled()) {
+                                this.sendPosition(this, this.yaw, this.pitch, MovePlayerPacket.MODE_RESET);
+                            } else {
+                                this.setSpinAttacking(true);
+                                Sound spinSound = riptideLevel >= 3 ? Sound.ITEM_TRIDENT_RIPTIDE_3
+                                        : riptideLevel == 2 ? Sound.ITEM_TRIDENT_RIPTIDE_2 : Sound.ITEM_TRIDENT_RIPTIDE_1;
+                                this.level.addSound(this, spinSound);
+                            }
+                        }
+                    }
+                    if (authInputPacket.getInputData().contains(AuthInputAction.STOP_SPIN_ATTACK)) {
+                        PlayerToggleSpinAttackEvent spinEvent = new PlayerToggleSpinAttackEvent(this, false);
+                        this.server.getPluginManager().callEvent(spinEvent);
+                        if (spinEvent.isCancelled()) {
+                            this.sendData(this);
+                        } else {
+                            this.setSpinAttacking(false);
+                        }
+                    }
+                    if (authInputPacket.getInputData().contains(AuthInputAction.START_FLYING)) {
+                        if (!this.server.getAllowFlight() && !this.getAdventureSettings().get(Type.ALLOW_FLIGHT)) {
+                            this.getAdventureSettings().update();
+                            break;
+                        }
+                        PlayerToggleFlightEvent flightEvent = new PlayerToggleFlightEvent(this, true);
+                        this.server.getPluginManager().callEvent(flightEvent);
+                        if (flightEvent.isCancelled()) {
+                            this.getAdventureSettings().update();
+                        } else {
+                            this.getAdventureSettings().set(Type.FLYING, flightEvent.isFlying()).update();
+                        }
+                    }
+                    if (authInputPacket.getInputData().contains(AuthInputAction.STOP_FLYING)) {
+                        PlayerToggleFlightEvent flightEvent = new PlayerToggleFlightEvent(this, false);
+                        if (this.isSpectator()) {
+                            flightEvent.setCancelled(true);
+                        }
+                        this.server.getPluginManager().callEvent(flightEvent);
+                        if (flightEvent.isCancelled()) {
+                            this.getAdventureSettings().update();
+                        } else {
+                            this.getAdventureSettings().set(Type.FLYING, flightEvent.isFlying()).update();
+                        }
+                    }
                     break;
 
                 case ProtocolInfo.MOVE_PLAYER_PACKET:
