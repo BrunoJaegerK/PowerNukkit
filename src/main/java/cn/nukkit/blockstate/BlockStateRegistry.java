@@ -12,6 +12,7 @@ import cn.nukkit.blockproperty.exception.BlockPropertyNotFoundException;
 import cn.nukkit.blockstate.exception.InvalidBlockStateException;
 import cn.nukkit.nbt.NBTIO;
 import cn.nukkit.nbt.tag.CompoundTag;
+import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.nbt.tag.Tag;
 import cn.nukkit.utils.BinaryStream;
 import cn.nukkit.utils.HumanStringComparator;
@@ -34,6 +35,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.zip.GZIPInputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -97,27 +99,45 @@ public class BlockStateRegistry {
         }
         //</editor-fold>
 
-        //<editor-fold desc="Loading canonical_block_states.nbt" defaultstate="collapsed">
+        //<editor-fold desc="Loading Bedrock 1.26.65 runtime block states" defaultstate="collapsed">
         List<CompoundTag> tags = new ArrayList<>();
-        List<String> loadingKnownStateIds = new ArrayList<>();
-        try (InputStream stream = Server.class.getClassLoader().getResourceAsStream("canonical_block_states.nbt")) {
+        List<String> loadingKnownStateIds;
+        try (InputStream stream = Server.class.getClassLoader().getResourceAsStream("bedrock/1.26.65/runtime_block_states_2225.dat")) {
             if (stream == null) {
-                throw new AssertionError("Unable to locate block state nbt");
+                throw new AssertionError("Unable to locate Bedrock 1.26.65 runtime block states");
             }
 
-            try (BufferedInputStream bis = new BufferedInputStream(stream)) {
-                int runtimeId = 0;
-                while (bis.available() > 0) {
-                    CompoundTag tag = NBTIO.read(bis, ByteOrder.BIG_ENDIAN, true);
-                    tag.putInt("runtimeId", runtimeId++);
-                    tag.putInt("blockId", persistenceNameToBlockId.getOrDefault(tag.getString("name").toLowerCase(), -1));
-                    tags.add(tag);
-                    loadingKnownStateIds.add(getStateId(tag));
-                }
+            try (BufferedInputStream bis = new BufferedInputStream(new GZIPInputStream(stream))) {
+                @SuppressWarnings("unchecked")
+                ListTag<CompoundTag> palette = (ListTag<CompoundTag>) NBTIO.readTag(bis, ByteOrder.BIG_ENDIAN, false);
+                tags.addAll(palette.getAll());
             }
-            knownStateIds = Arrays.asList(loadingKnownStateIds.toArray(EmptyArrays.EMPTY_STRINGS));
+
+            tags.sort(Comparator.comparingInt(tag -> tag.getInt("runtimeId")));
+            int maxRuntimeId = -1;
+            for (CompoundTag tag : tags) {
+                int runtimeId = tag.getInt("runtimeId");
+                String name = tag.getString("name").toLowerCase(Locale.ENGLISH);
+                int blockId = tag.getTags().containsKey("id")
+                        ? tag.getInt("id") : persistenceNameToBlockId.getOrDefault(name, -1);
+                tag.putInt("blockId", blockId);
+                maxRuntimeId = Math.max(maxRuntimeId, runtimeId);
+            }
+
+            String[] stateIds = new String[maxRuntimeId + 1];
+            for (CompoundTag tag : tags) {
+                stateIds[tag.getInt("runtimeId")] = getStateId(tag);
+            }
+            loadingKnownStateIds = new ArrayList<>(stateIds.length);
+            for (int runtimeId = 0; runtimeId < stateIds.length; runtimeId++) {
+                if (stateIds[runtimeId] == null) {
+                    throw new IllegalStateException("Missing Bedrock block runtime state " + runtimeId);
+                }
+                loadingKnownStateIds.add(stateIds[runtimeId]);
+            }
+            knownStateIds = Collections.unmodifiableList(loadingKnownStateIds);
         } catch (IOException e) {
-            throw new AssertionError(e);
+            throw new AssertionError("Unable to load Bedrock 1.26.65 runtime block states", e);
         }
         //</editor-fold>
         Integer infoUpdateRuntimeId = null;
@@ -135,7 +155,15 @@ public class BlockStateRegistry {
             // Special condition: minecraft:wood maps 3 blocks, minecraft:wood, minecraft:log and minecraft:log2
             // All other cases, register the name normally
             if (isNameOwnerOfId(name, blockId)) {
-                registerPersistenceName(blockId, name);
+                String registeredName = blockIdToPersistenceName.get(blockId);
+                if (registeredName == null) {
+                    registerPersistenceName(blockId, name);
+                } else if (!registeredName.equalsIgnoreCase(name)) {
+                    Integer existingId = persistenceNameToBlockId.putIfAbsent(name, blockId);
+                    if (existingId != null && existingId != blockId) {
+                        log.warn("Bedrock block name {} maps to both {} and {}", name, existingId, blockId);
+                    }
+                }
                 registerStateId(state, runtimeId);
             } else if (blockId == -1) {
                 if (warned.add(name)) {
