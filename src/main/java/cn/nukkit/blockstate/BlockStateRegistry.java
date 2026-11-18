@@ -143,32 +143,38 @@ public class BlockStateRegistry {
 
         Set<String> warned = new HashSet<>();
 
-        for (CompoundTag state : tags) {
-            int blockId = state.getInt("blockId");
-            int runtimeId = state.getInt("runtimeId");
-            String name = state.getString("name").toLowerCase();
-            if (name.equals("minecraft:unknown") || blockId == BlockID.INFO_UPDATE) {
-                infoUpdateRuntimeId = runtimeId;
-            }
-            
-            // Special condition: minecraft:wood maps 3 blocks, minecraft:wood, minecraft:log and minecraft:log2
-            // All other cases, register the name normally
-            if (isNameOwnerOfId(name, blockId)) {
-                String registeredName = blockIdToPersistenceName.get(blockId);
-                if (registeredName == null) {
-                    registerPersistenceName(blockId, name);
-                } else if (!registeredName.equalsIgnoreCase(name)) {
-                    Integer existingId = persistenceNameToBlockId.putIfAbsent(name, blockId);
-                    if (existingId != null && existingId != blockId) {
-                        log.warn("Bedrock block name {} maps to both {} and {}", name, existingId, blockId);
+        // Process ordinary states first and explicit overloads second, matching
+        // Bedrock's runtime palette order. Overloads replace legacy block/meta mappings.
+        for (int overloadPass = 0; overloadPass < 2; overloadPass++) {
+            boolean overload = overloadPass == 1;
+            for (CompoundTag state : tags) {
+                if (state.getBoolean("stateOverload") != overload) {
+                    continue;
+                }
+                int blockId = state.getInt("blockId");
+                int runtimeId = state.getInt("runtimeId");
+                String name = state.getString("name").toLowerCase(Locale.ENGLISH);
+                if (name.equals("minecraft:unknown") || blockId == BlockID.INFO_UPDATE) {
+                    infoUpdateRuntimeId = runtimeId;
+                }
+
+                if (isNameOwnerOfId(name, blockId)) {
+                    String registeredName = blockIdToPersistenceName.get(blockId);
+                    if (registeredName == null) {
+                        registerPersistenceName(blockId, name);
+                    } else if (!registeredName.equalsIgnoreCase(name)) {
+                        Integer existingId = persistenceNameToBlockId.putIfAbsent(name, blockId);
+                        if (existingId != null && existingId != blockId) {
+                            log.warn("Bedrock block name {} maps to both {} and {}", name, existingId, blockId);
+                        }
                     }
+                    registerStateId(state, runtimeId);
+                } else if (blockId == -1) {
+                    if (warned.add(name)) {
+                        log.warn("Unknown block id for the block named {}", name);
+                    }
+                    registerStateId(state, runtimeId);
                 }
-                registerStateId(state, runtimeId);
-            } else if (blockId == -1) {
-                if (warned.add(name)) {
-                    log.warn("Unknown block id for the block named {}", name);
-                }
-                registerStateId(state, runtimeId);
             }
         }
 
@@ -470,37 +476,23 @@ public class BlockStateRegistry {
     private void registerStateId(CompoundTag block, int runtimeId) {
         String stateId = getStateId(block);
         Registration registration = new Registration(null, runtimeId, block);
-        boolean stateOverload = block.getBoolean("stateOverload");
-
-        Registration old = stateIdRegistration.putIfAbsent(stateId, registration);
-        if (old != null && old.runtimeId != runtimeId) {
-            if (stateOverload) {
-                stateIdRegistration.put(stateId, registration);
-            } else {
-                throw new UnsupportedOperationException("The persistence NBT registration tried to replace a runtime id. Old:"
-                        + old.runtimeId + ", New:" + runtimeId + ", State:" + stateId);
-            }
-        }
+        stateIdRegistration.put(stateId, registration);
 
         int blockId = block.getInt("blockId");
         if (blockId >= 0) {
             int meta = block.getShort("data") & 0xffff;
             BlockState legacyState = blockId == BlockID.AIR ? BlockState.AIR : BlockState.of(blockId, meta);
             Registration legacyRegistration = new Registration(legacyState, runtimeId, null);
-            Registration oldLegacy = blockStateRegistration.putIfAbsent(legacyState, legacyRegistration);
-            if (stateOverload) {
-                blockStateRegistration.put(legacyState, legacyRegistration);
-            } else if (oldLegacy != null && oldLegacy.runtimeId != runtimeId) {
-                throw new UnsupportedOperationException("The Bedrock palette maps " + legacyState
-                        + " to conflicting runtime IDs " + oldLegacy.runtimeId + " and " + runtimeId);
-            }
+
+            // Multiple Bedrock identifiers can share one legacy block/meta pair.
+            // Later palette entries intentionally replace the previous legacy mapping.
+            blockStateRegistration.put(legacyState, legacyRegistration);
         }
 
-        // Keep the original NBT registration for runtime-to-state lookups. Multiple
-        // persistent states may legitimately share one runtime ID.
+        // Preserve the first reverse mapping when multiple palette entries share one runtime ID.
         runtimeIdRegistration.putIfAbsent(runtimeId, registration);
     }
-    
+
     private void registerState(int blockId, int meta, CompoundTag originalState, int runtimeId) {
         BlockState state = BlockState.of(blockId, meta);
         Registration registration = new Registration(state, runtimeId, null);
