@@ -343,26 +343,6 @@ public class CraftingManager {
         Item item;
         if (data.containsKey("blockState")) {
             String blockStateId = data.get("blockState").toString();
-            // TODO Remove this when the support is added to these blocks
-            if (Stream.of(
-                    "minecraft:candle",
-                    "minecraft:cracked_deepslate_bricks",
-                    "minecraft:cracked_deepslate_tiles",
-                    "minecraft:smooth_basalt",
-                    "minecraft:moss_block",
-                    "minecraft:deepslate",
-                    "minecraft:copper",
-                    "minecraft:raw_",
-                    "minecraft:pointed_dripstone"
-            ).anyMatch(blockStateId::startsWith)) {
-                return Item.get(BlockID.AIR);
-            }
-            if (Stream.of(
-                    "copper", "deepslate", "deepslate_slab",
-                    "copper_slab", "copper_stairs"
-            ).anyMatch(blockStateId.split(";", 2)[0]::endsWith)) {
-                return Item.get(BlockID.AIR);
-            }
             try {
                 BlockState state = BlockState.of(blockStateId);
                 item = state.asItemBlock(count);
