@@ -49,7 +49,7 @@ public class RuntimeItems {
         log.debug("Loading Bedrock 1.26.65 runtime items...");
         BedrockDataRegistry registry = BedrockDataRegistry.getDefault();
         Map<String, Integer> legacyIds = loadLegacyIds();
-        Map<String, LegacyMapping> legacyMappings = loadLegacyMappings();
+        Map<String, List<LegacyMapping>> legacyMappings = loadLegacyMappings();
 
         Int2IntMap legacyNetworkMap = new Int2IntOpenHashMap();
         Int2IntMap networkLegacyMap = new Int2IntOpenHashMap();
