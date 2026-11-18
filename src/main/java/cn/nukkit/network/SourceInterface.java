@@ -17,6 +17,15 @@ public interface SourceInterface {
 
     Integer putPacket(Player player, DataPacket packet, boolean needACK, boolean immediate);
 
+    /** Sends a packet before Bedrock packet compression has been negotiated. */
+    default void putPacketUncompressed(Player player, DataPacket packet) {
+        putPacket(player, packet, false, true);
+    }
+
+    /** Enables the negotiated packet compression for this player's connection. */
+    default void enableCompression(Player player) {
+    }
+
     int getNetworkLatency(Player player);
 
     void close(Player player);

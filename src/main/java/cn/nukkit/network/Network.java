@@ -249,7 +249,30 @@ public class Network {
             log.debug("Exception while inflating batch packet", e);
             return;
         }
+        processBatchData(data, packets);
+    }
 
+    /** Processes the uncompressed batch used for the initial network-settings handshake. */
+    public void processUncompressedBatch(byte[] payload, Collection<DataPacket> packets) {
+        processBatchData(payload, packets);
+    }
+
+    /** Detects the uncompressed RequestNetworkSettings packet before compression is negotiated. */
+    public static boolean isRequestNetworkSettingsBatch(byte[] payload) {
+        try {
+            ByteArrayInputStream input = new ByteArrayInputStream(payload);
+            int packetLength = (int) VarInt.readUnsignedVarInt(input);
+            if (packetLength <= 0 || packetLength > payload.length) {
+                return false;
+            }
+            int header = (int) VarInt.readUnsignedVarInt(input);
+            return (header & 0x3ff) == (ProtocolInfo.REQUEST_NETWORK_SETTINGS_PACKET & 0xff);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void processBatchData(byte[] data, Collection<DataPacket> packets) {
         BinaryStream stream = new BinaryStream(data);
         try {
             int count = 0;
@@ -259,16 +282,12 @@ public class Network {
                     throw new ProtocolException("Illegal batch with " + count + " packets");
                 }
                 byte[] buf = stream.getByteArray();
-
                 ByteArrayInputStream bais = new ByteArrayInputStream(buf);
                 int header = (int) VarInt.readUnsignedVarInt(bais);
-
                 // | Client ID | Sender ID | Packet ID |
-                // |   2 bits  |   2 bits  |  10 bits  |
+                // |   2 bits  |   2 bits  |   10 bits  |
                 int packetId = header & 0x3ff;
-
                 DataPacket pk = this.getPacket(packetId);
-
                 if (pk != null) {
                     pk.setBuffer(buf, buf.length - bais.available());
                     try {
@@ -280,7 +299,6 @@ public class Network {
                         log.error("Unable to decode packet", e);
                         throw new IllegalStateException("Unable to decode " + pk.getClass().getSimpleName());
                     }
-
                     packets.add(pk);
                 } else {
                     log.debug("Received unknown packet with ID: {}", Integer.toHexString(packetId));
@@ -363,6 +381,8 @@ public class Network {
 
     private void registerPackets() {
         this.packetPool = new Class[256];
+        this.registerPacket(ProtocolInfo.NETWORK_SETTINGS_PACKET, NetworkSettingsPacket.class);
+        this.registerPacket(ProtocolInfo.REQUEST_NETWORK_SETTINGS_PACKET, RequestNetworkSettingsPacket.class);
 
         this.registerPacket(ProtocolInfo.ADD_ENTITY_PACKET, AddEntityPacket.class);
         this.registerPacket(ProtocolInfo.ADD_ITEM_ENTITY_PACKET, AddItemEntityPacket.class);
