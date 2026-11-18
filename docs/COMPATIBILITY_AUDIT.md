@@ -50,3 +50,10 @@ Audit date: 2026-11-18
 - No Nukkit-MOT transport or packet implementation has been transplanted yet.
 - No compatibility or gameplay tests have been run yet.
 - The added CI workflow is a baseline safety net; its first run determines the actual build status.
+
+### Protocol version verified from source
+
+- PowerNukkit currently declares protocol `662` and Minecraft network version `1.20.70` in `ProtocolInfo.java`.
+- PetteriM1Edition currently declares `v1_26_60` as its current protocol and `1.26.60` as its network version.
+- Nukkit-MOT currently declares `v1_26_60` as its current protocol and resolves its network version from that protocol.
+- This confirms the primary upgrade is not a small patch: the target is a multi-generation protocol jump from Bedrock 1.20.70 to 1.26.60 (the current version represented by both reference branches at the inspected commits).
