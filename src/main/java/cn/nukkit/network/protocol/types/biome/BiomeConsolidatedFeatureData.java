@@ -1,7 +1,5 @@
 package cn.nukkit.network.protocol.types.biome;
 
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 
@@ -11,17 +9,10 @@ public class BiomeConsolidatedFeatureData {
     BiomeScatterParamData scatter;
     String feature;
     String identifier;
-    undefined
+    String pass;
     boolean internalUse;
 
-    public BiomeConsolidatedFeatureData(BiomeScatterParamData scatter, String feature, String identifier, String pass,
-                                        boolean internalUse) {
-        this.scatter = scatter;
-        this.feature = feature;
-        this.identifier = identifier;
-        this.pass = pass;
-        this.internalUse = internalUse;
-    }
+
 
     public String getFeature() {
         return feature;

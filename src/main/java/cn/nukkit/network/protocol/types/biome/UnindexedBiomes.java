@@ -1,6 +1,5 @@
 package cn.nukkit.network.protocol.types.biome;
 
-import org.cloudburstmc.protocol.common.util.index.Indexable;
 
 import java.util.Map;
 

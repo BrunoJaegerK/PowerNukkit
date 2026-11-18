@@ -55,7 +55,6 @@ public class BiomeDefinitionData {
     /**
      * @since 1.21.90-netease
      */
-    @OnlyNetEase
     public String vanilla = "";
     @Getter(AccessLevel.NONE)
     public List<String> tags;
@@ -84,7 +83,7 @@ public class BiomeDefinitionData {
                                float blueSporeDensity, float ashDensity, float whiteAshDensity, float depth,
                                float scale, Color mapWaterColor, boolean rain, List<String> tags,
                                BiomeDefinitionChunkGenData chunkGenData) {
-        this.id = id == null ? null : new Unindexed<>(id);
+        this.id = id;
         this.temperature = temperature;
         this.downfall = downfall;
         this.foliageSnow = 0; //0 for old behavior
@@ -96,7 +95,7 @@ public class BiomeDefinitionData {
         this.scale = scale;
         this.mapWaterColor = mapWaterColor;
         this.rain = rain;
-        this.tags = tags == null ? null : new Unindexed<>(tags);
+        this.tags = tags;
         this.chunkGenData = chunkGenData;
     }
 

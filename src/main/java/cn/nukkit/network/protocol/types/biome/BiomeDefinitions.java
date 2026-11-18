@@ -1,7 +1,5 @@
 package cn.nukkit.network.protocol.types.biome;
 
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 
@@ -13,9 +11,7 @@ public class BiomeDefinitions {
 
     Map<String, BiomeDefinitionData> definitions;
 
-    public BiomeDefinitions(Map<String, BiomeDefinitionData> definitions) {
-        this.definitions = definitions;
-    }
+
 
     public Map<String, BiomeDefinitionData> getDefinitions() {
         return definitions;
