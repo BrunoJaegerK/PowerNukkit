@@ -485,7 +485,7 @@ public class BlockStateRegistry {
         int blockId = block.getInt("blockId");
         if (blockId >= 0) {
             int meta = block.getShort("data") & 0xffff;
-            BlockState legacyState = BlockState.of(blockId, meta);
+            BlockState legacyState = blockId == BlockID.AIR ? BlockState.AIR : BlockState.of(blockId, meta);
             Registration legacyRegistration = new Registration(legacyState, runtimeId, null);
             Registration oldLegacy = blockStateRegistration.putIfAbsent(legacyState, legacyRegistration);
             if (stateOverload) {
