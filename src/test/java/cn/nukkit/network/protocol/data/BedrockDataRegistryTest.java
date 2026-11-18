@@ -14,6 +14,7 @@ class BedrockDataRegistryTest {
         assertEquals(2080, registry.getRuntimeItemCount());
         assertTrue(registry.getBlockPropertyCount() > 0);
         assertTrue(registry.getItemTagCount() > 0);
+        assertTrue(registry.getItemComponentCount() > 0);
         assertEquals(382, registry.getItem("minecraft:acacia_boat").getId());
         assertEquals(-140, registry.getItem("minecraft:acacia_button").getId());
         assertEquals(75, registry.getComponentBasedItemCount());

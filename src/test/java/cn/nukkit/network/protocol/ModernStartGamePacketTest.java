@@ -28,7 +28,7 @@ class ModernStartGamePacketTest {
         List<ItemComponentPacket.ItemDefinition> definitions = new ArrayList<>();
         for (BedrockDataRegistry.RuntimeItemState item : registry.getRuntimeItems()) {
             definitions.add(new ItemComponentPacket.ItemDefinition(
-                    item.getName(), item.getId(), item.isComponentBased(), item.getVersion(), null));
+                    item.getName(), item.getId(), item.isComponentBased(), item.getVersion(), registry.getItemComponentData(item.getName())));
         }
 
         ItemComponentPacket packet = new ItemComponentPacket();

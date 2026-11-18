@@ -2298,11 +2298,12 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
         ItemComponentPacket itemComponentPacket = new ItemComponentPacket();
         if (ProtocolInfo.CURRENT_PROTOCOL >= ProtocolInfo.v1_21_60) {
+            BedrockDataRegistry registry = BedrockDataRegistry.getDefault();
             List<ItemComponentPacket.ItemDefinition> itemDefinitions = new ArrayList<>();
-            for (BedrockDataRegistry.RuntimeItemState item : BedrockDataRegistry.getDefault().getRuntimeItems()) {
+            for (BedrockDataRegistry.RuntimeItemState item : registry.getRuntimeItems()) {
                 itemDefinitions.add(new ItemComponentPacket.ItemDefinition(
                         item.getName(), item.getId(), item.isComponentBased(), item.getVersion(),
-                        BedrockDataRegistry.getDefault().getItemComponentData(item.getName())));
+                        registry.getItemComponentData(item.getName())));
             }
             itemComponentPacket.setItemDefinitions(itemDefinitions);
         }
