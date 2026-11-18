@@ -64,6 +64,10 @@ public class PlayerAuthInputPacket extends DataPacket {
         return NETWORK_ID;
     }
 
+    private Vector2f getVector2f() {
+        return new Vector2f(this.getLFloat(), this.getLFloat());
+    }
+
     @Override
     public void decode() {
         this.pitch = this.getLFloat();

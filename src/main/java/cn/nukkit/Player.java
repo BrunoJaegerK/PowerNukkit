@@ -2690,9 +2690,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         }
                         this.server.getPluginManager().callEvent(sprintEvent);
                         if (sprintEvent.isCancelled()) {
-                            this.needSendData = true;
+                            this.sendData(this);
                         } else {
-                            this.setSprinting(true, false);
+                            this.setSprinting(true);
                         }
                         this.setUsingItem(false);
                     }
@@ -2700,9 +2700,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         PlayerToggleSprintEvent sprintEvent = new PlayerToggleSprintEvent(this, false);
                         this.server.getPluginManager().callEvent(sprintEvent);
                         if (sprintEvent.isCancelled()) {
-                            this.needSendData = true;
+                            this.sendData(this);
                         } else {
-                            this.setSprinting(false, false);
+                            this.setSprinting(false);
                         }
                     }
                     if (authInputPacket.getInputData().contains(AuthInputAction.START_SNEAKING)) {
@@ -2712,7 +2712,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         }
                         this.server.getPluginManager().callEvent(sneakEvent);
                         if (sneakEvent.isCancelled()) {
-                            this.needSendData = true;
+                            this.sendData(this);
                         } else {
                             this.setSneaking(true);
                         }
@@ -2721,7 +2721,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         PlayerToggleSneakEvent sneakEvent = new PlayerToggleSneakEvent(this, false);
                         this.server.getPluginManager().callEvent(sneakEvent);
                         if (sneakEvent.isCancelled()) {
-                            this.needSendData = true;
+                            this.sendData(this);
                         } else {
                             this.setSneaking(false);
                         }
