@@ -2806,9 +2806,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     if (this.riding instanceof EntityBoat && this.riding.isControlling(this)) {
                         EntityBoat boat = (EntityBoat) this.riding;
                         if (boat.getId() == authInputPacket.getPredictedVehicle()) {
-                            int belowBoat = this.level.getBlockIdAt(boat.chunk, boat.getFloorX(), boat.getFloorY() - 1, boat.getFloorZ());
+                            int belowBoat = this.level.getBlockIdAt(boat.getFloorX(), boat.getFloorY() - 1, boat.getFloorZ());
                             int maxDistance = belowBoat == BlockID.BLUE_ICE ? 16
-                                    : (belowBoat == BlockID.ICE || belowBoat == BlockID.PACKED_ICE || belowBoat == BlockID.FROSTED_ICE
+                                    : (belowBoat == BlockID.ICE || belowBoat == BlockID.PACKED_ICE
                                     || (belowBoat == BlockID.AIR && this.lastBoatY - boat.y > 1)) ? 10 : 2;
                             this.lastBoatY = boat.y;
                             if (this.temporalVector.setComponents(authPosition.x, authPosition.y, authPosition.z).distanceSquared(boat) < maxDistance) {
