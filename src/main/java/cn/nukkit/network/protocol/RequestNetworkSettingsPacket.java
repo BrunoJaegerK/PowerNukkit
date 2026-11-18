@@ -21,6 +21,6 @@ public class RequestNetworkSettingsPacket extends DataPacket {
 
     @Override
     public void encode() {
-        this.encodeUnsupported();
+        throw new UnsupportedOperationException("RequestNetworkSettingsPacket is clientbound only");
     }
 }

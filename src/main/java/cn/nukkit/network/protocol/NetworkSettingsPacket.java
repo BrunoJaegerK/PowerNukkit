@@ -24,6 +24,6 @@ public class NetworkSettingsPacket extends DataPacket {
 
     @Override
     public void decode() {
-        this.decodeUnsupported();
+        throw new UnsupportedOperationException("NetworkSettingsPacket is serverbound only");
     }
 }
