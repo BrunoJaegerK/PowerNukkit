@@ -9,6 +9,9 @@ public class NetworkSettingsPacket extends DataPacket {
 
     public int compressionThreshold;
     public int compressionAlgorithm;
+    public boolean clientThrottleEnabled;
+    public byte clientThrottleThreshold;
+    public float clientThrottleScalar;
 
     @Override
     public byte pid() {
@@ -19,7 +22,12 @@ public class NetworkSettingsPacket extends DataPacket {
     public void encode() {
         this.reset();
         this.putLShort(this.compressionThreshold);
-        this.putLShort(this.compressionAlgorithm);
+        if (this.protocol >= ProtocolInfo.v1_19_30) {
+            this.putLShort(this.compressionAlgorithm);
+            this.putBoolean(this.clientThrottleEnabled);
+            this.putByte(this.clientThrottleThreshold);
+            this.putLFloat(this.clientThrottleScalar);
+        }
     }
 
     @Override
