@@ -1,7 +1,6 @@
 package cn.nukkit.network.protocol.types.biome;
 
 
-import cn.nukkit.api.OnlyNetEase;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +16,7 @@ public class BiomeDefinitionData {
      * Custom biome ID. (uint16)
      */
     @Getter(AccessLevel.NONE)
-    public Indexable<String> id;
+    public String id;
     public float temperature;
     public float downfall;
     /**
@@ -52,21 +51,20 @@ public class BiomeDefinitionData {
     /**
      * @since 1.21.90-netease
      */
-    @OnlyNetEase
-    public int dimension = 0;
+        public int dimension = 0;
     /**
      * @since 1.21.90-netease
      */
     @OnlyNetEase
     public String vanilla = "";
     @Getter(AccessLevel.NONE)
-    public Indexable<List<String>> tags;
+    public List<String> tags;
     public BiomeDefinitionChunkGenData chunkGenData;
 
     public BiomeDefinitionData(String id, float temperature, float downfall, float foliageSnow, float depth,
                                float scale, Color mapWaterColor, boolean rain, List<String> tags,
                                BiomeDefinitionChunkGenData chunkGenData) {
-        this.id = id == null ? null : new Unindexed<>(id);
+        this.id = id;
         this.temperature = temperature;
         this.downfall = downfall;
         this.foliageSnow = foliageSnow;
@@ -78,7 +76,7 @@ public class BiomeDefinitionData {
         this.scale = scale;
         this.mapWaterColor = mapWaterColor;
         this.rain = rain;
-        this.tags = tags == null ? null : new Unindexed<>(tags);
+        this.tags = tags;
         this.chunkGenData = chunkGenData;
     }
 
@@ -106,13 +104,13 @@ public class BiomeDefinitionData {
         if (id == null) {
             return null;
         }
-        return id.get();
+        return id;
     }
 
     public List<String> getTags() {
         if (tags == null) {
             return null;
         }
-        return tags.get();
+        return tags;
     }
 }

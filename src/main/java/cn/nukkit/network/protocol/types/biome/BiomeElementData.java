@@ -12,11 +12,9 @@ public class BiomeElementData {
     float noiseLowerBound;
     float noiseUpperBound;
     ExpressionOp heightMinType;
-    @Getter(AccessLevel.NONE)
-    Indexable<String> heightMin;
+    String heightMin;
     ExpressionOp heightMaxType;
-    @Getter(AccessLevel.NONE)
-    Indexable<String> heightMax;
+    String heightMax;
     BiomeSurfaceMaterialData adjustedMaterials;
 
     public BiomeElementData(float noiseFrequencyScale, float noiseLowerBound, float noiseUpperBound,
@@ -26,17 +24,17 @@ public class BiomeElementData {
         this.noiseLowerBound = noiseLowerBound;
         this.noiseUpperBound = noiseUpperBound;
         this.heightMinType = heightMinType;
-        this.heightMin = new Unindexed<>(heightMin);
+        this.heightMin = heightMin;
         this.heightMaxType = heightMaxType;
-        this.heightMax = new Unindexed<>(heightMax);
+        this.heightMax = heightMax;
         this.adjustedMaterials = adjustedMaterials;
     }
 
     public String getHeightMin() {
-        return heightMin.get();
+        return heightMin;
     }
 
     public String getHeightMax() {
-        return heightMax.get();
+        return heightMax;
     }
 }

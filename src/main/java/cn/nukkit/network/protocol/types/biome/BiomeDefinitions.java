@@ -11,14 +11,13 @@ import java.util.Map;
 @RequiredArgsConstructor(onConstructor_ = { @Deprecated })
 public class BiomeDefinitions {
 
-    @Getter(AccessLevel.NONE)
-    Indexable<Map<String, BiomeDefinitionData>> definitions;
+    Map<String, BiomeDefinitionData> definitions;
 
     public BiomeDefinitions(Map<String, BiomeDefinitionData> definitions) {
-        this.definitions = new UnindexedBiomes(definitions);
+        this.definitions = definitions;
     }
 
     public Map<String, BiomeDefinitionData> getDefinitions() {
-        return definitions.get();
+        return definitions;
     }
 }
