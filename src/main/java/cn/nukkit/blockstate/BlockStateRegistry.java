@@ -412,9 +412,10 @@ public class BlockStateRegistry {
     }
     
     private void removeStateIdsAsync(@Nullable Registration registration) {
-        if (registration != null && registration != updateBlockRegistration) {
-            asyncStateRemover.submit(() -> stateIdRegistration.values().removeIf(r -> r.runtimeId == registration.runtimeId));
-        }
+        // Modern Bedrock palettes intentionally allow several persistent block states
+        // to share a runtime ID (state overloads and legacy aliases). Removing every
+        // state with the same runtime ID breaks later lookups for those valid aliases.
+        // The modern palette is small enough to retain the complete state-id index.
     }
 
     private Registration logDiscoveryError(BlockState state) {
