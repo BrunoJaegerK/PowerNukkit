@@ -5,10 +5,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import cn.nukkit.utils.BinaryStream;
+import cn.nukkit.nbt.NBTIO;
+import cn.nukkit.nbt.tag.CompoundTag;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.ByteOrder;
+import java.util.zip.GZIPInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +35,7 @@ public final class BedrockDataRegistry {
     private final Map<String, List<String>> itemTags;
     private final List<RuntimeItemState> runtimeItems;
     private final byte[] itemDataPalette;
+    private final CompoundTag itemComponents;
     private static volatile BedrockDataRegistry defaultRegistry;
 
     private BedrockDataRegistry(Map<String, RuntimeItemState> itemsByName,
@@ -38,13 +43,15 @@ public final class BedrockDataRegistry {
                                 Map<String, JsonObject> blockProperties,
                                 Map<String, List<String>> itemTags,
                                 List<RuntimeItemState> runtimeItems,
-                                byte[] itemDataPalette) {
+                                byte[] itemDataPalette,
+                                CompoundTag itemComponents) {
         this.itemsByName = Collections.unmodifiableMap(itemsByName);
         this.itemsById = Collections.unmodifiableMap(itemsById);
         this.blockProperties = Collections.unmodifiableMap(blockProperties);
         this.itemTags = Collections.unmodifiableMap(itemTags);
         this.runtimeItems = Collections.unmodifiableList(runtimeItems);
         this.itemDataPalette = itemDataPalette.clone();
+        this.itemComponents = itemComponents;
     }
 
     public static BedrockDataRegistry loadDefault() throws IOException {
@@ -106,10 +113,16 @@ public final class BedrockDataRegistry {
             }
         }
 
-        if (itemsByName.isEmpty() || blockProperties.isEmpty() || itemTags.isEmpty()) {
+        CompoundTag itemComponents;
+        try (InputStream stream = requiredResource(loader, ROOT + "item_components_2225.nbt");
+             GZIPInputStream gzip = new GZIPInputStream(stream)) {
+            itemComponents = NBTIO.read(gzip, ByteOrder.BIG_ENDIAN, false);
+        }
+
+        if (itemsByName.isEmpty() || blockProperties.isEmpty() || itemTags.isEmpty() || itemComponents == null) {
             throw new IllegalStateException("Bedrock 1.26.65 data registry is incomplete");
         }
-        return new BedrockDataRegistry(itemsByName, itemsById, blockProperties, itemTags, runtimeItems, itemPalette.getBuffer());
+        return new BedrockDataRegistry(itemsByName, itemsById, blockProperties, itemTags, runtimeItems, itemPalette.getBuffer(), itemComponents);
     }
 
     private static InputStream requiredResource(ClassLoader loader, String path) {
@@ -148,6 +161,15 @@ public final class BedrockDataRegistry {
             }
         }
         return registry;
+    }
+
+    public CompoundTag getItemComponentData(String identifier) {
+        CompoundTag component = itemComponents.getCompound(identifier);
+        return component == null ? null : component.copy();
+    }
+
+    public int getItemComponentCount() {
+        return itemComponents.getTags().size();
     }
 
     public byte[] getItemDataPalette() {

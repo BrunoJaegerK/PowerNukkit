@@ -2301,7 +2301,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             List<ItemComponentPacket.ItemDefinition> itemDefinitions = new ArrayList<>();
             for (BedrockDataRegistry.RuntimeItemState item : BedrockDataRegistry.getDefault().getRuntimeItems()) {
                 itemDefinitions.add(new ItemComponentPacket.ItemDefinition(
-                        item.getName(), item.getId(), item.isComponentBased(), item.getVersion(), null));
+                        item.getName(), item.getId(), item.isComponentBased(), item.getVersion(),
+                        BedrockDataRegistry.getDefault().getItemComponentData(item.getName())));
             }
             itemComponentPacket.setItemDefinitions(itemDefinitions);
         }
