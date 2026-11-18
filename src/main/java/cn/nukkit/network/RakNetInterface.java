@@ -320,6 +320,12 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             ByteBuf buffer = packet.getBuffer();
             short packetId = buffer.readUnsignedByte();
             if (packetId == 0xfe) {
+                if (this.compressionEnabled) {
+                    if (!buffer.isReadable() || buffer.readUnsignedByte() != 0x00) {
+                        this.disconnect("Unsupported packet compression algorithm");
+                        return;
+                    }
+                }
                 byte[] packetBuffer = new byte[buffer.readableBytes()];
                 buffer.readBytes(packetBuffer);
 
@@ -388,8 +394,12 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
         }
 
         private void sendPacket(byte[] payload) {
-            ByteBuf byteBuf = ByteBufAllocator.DEFAULT.ioBuffer(1 + payload.length);
+            int prefixLength = this.compressionEnabled ? 1 : 0;
+            ByteBuf byteBuf = ByteBufAllocator.DEFAULT.ioBuffer(1 + prefixLength + payload.length);
             byteBuf.writeByte(0xfe);
+            if (this.compressionEnabled) {
+                byteBuf.writeByte(0x00); // ZLIB_RAW
+            }
             byteBuf.writeBytes(payload);
             this.raknet.send(byteBuf);
         }
@@ -405,8 +415,12 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
                 byte[] payload = this.compressionEnabled
                         ? Network.deflateRaw(batched.getBuffer(), network.getServer().networkCompressionLevel)
                         : batched.getBuffer();
-                ByteBuf byteBuf = ByteBufAllocator.DEFAULT.ioBuffer(1 + payload.length);
+                int prefixLength = this.compressionEnabled ? 1 : 0;
+                ByteBuf byteBuf = ByteBufAllocator.DEFAULT.ioBuffer(1 + prefixLength + payload.length);
                 byteBuf.writeByte(0xfe);
+                if (this.compressionEnabled) {
+                    byteBuf.writeByte(0x00); // ZLIB_RAW
+                }
                 byteBuf.writeBytes(payload);
                 this.raknet.send(byteBuf, RakNetPriority.IMMEDIATE);
             } catch (Exception e) {
