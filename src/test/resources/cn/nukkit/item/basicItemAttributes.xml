@@ -366,12 +366,12 @@
     </item>
     <item namespaced-id="minecraft:golden_carrot" numeric-id="396" name="Golden Carrot"/>
     <item namespaced-id="minecraft:skull" numeric-id="397" name="Skull">
-        <item-state damage="0" name="Skeleton Skull" />
-        <item-state damage="1" name="Wither Skeleton Skull" />
-        <item-state damage="2" name="Zombie Head" />
-        <item-state damage="3" name="Head" />
-        <item-state damage="4" name="Creeper Head" />
-        <item-state damage="5" name="Dragon Head" />
+        <item-state namespaced-id="minecraft:skeleton_skull" damage="0" name="Skeleton Skull" />
+        <item-state namespaced-id="minecraft:wither_skeleton_skull" damage="1" name="Wither Skeleton Skull" />
+        <item-state namespaced-id="minecraft:zombie_head" damage="2" name="Zombie Head" />
+        <item-state namespaced-id="minecraft:player_head" damage="3" name="Head" />
+        <item-state namespaced-id="minecraft:creeper_head" damage="4" name="Creeper Head" />
+        <item-state namespaced-id="minecraft:dragon_head" damage="5" name="Dragon Head" />
     </item>
     <item namespaced-id="minecraft:carrot_on_a_stick" numeric-id="398" name="Carrot on a Stick" stack-size="1" durability="26" tool="true"/>
     <item namespaced-id="minecraft:nether_star" numeric-id="399" name="Nether Star"/>

@@ -2,6 +2,7 @@ package cn.nukkit.network.protocol;
 
 import cn.nukkit.item.RuntimeItemMapping;
 import cn.nukkit.item.RuntimeItems;
+import cn.nukkit.item.Item;
 import cn.nukkit.network.protocol.data.BedrockDataRegistry;
 import org.junit.jupiter.api.Test;
 
@@ -51,6 +52,9 @@ class ModernBiomeDefinitionPacketTest {
         assertLegacyVariant(mapping, "minecraft:blue_shulker_box", 218, 11);
         assertLegacyVariant(mapping, "minecraft:villager_spawn_egg", 383, 15);
         assertLegacyVariant(mapping, "minecraft:skeleton_skull", 397, 0);
+
+        assertEquals("minecraft:blue_shulker_box", Item.get(218, 11).getNamespaceId());
+        assertEquals("minecraft:villager_spawn_egg", Item.get(383, 15).getNamespaceId());
     }
 
     private static void assertLegacyVariant(RuntimeItemMapping mapping, String namespaceId, int expectedId, int expectedDamage) {
