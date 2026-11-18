@@ -63,34 +63,46 @@ public class RuntimeItems {
             networkNamespaceMap.put(runtimeId, identifier);
             namespaceNetworkMap.put(identifier, runtimeId);
 
-            LegacyMapping mapping = legacyMappings.get(identifier);
-            Integer legacyId;
-            int damage = 0;
-            boolean hasData = false;
-            if (mapping != null && mapping.protocol <= ProtocolInfo.CURRENT_PROTOCOL) {
-                legacyId = legacyIds.get(mapping.legacyName);
-                damage = mapping.damage;
-                hasData = true;
-            } else {
-                legacyId = legacyIds.get(identifier);
+            List<LegacyMapping> variants = legacyMappings.get(identifier);
+            boolean hasLegacyMapping = false;
+            if (variants != null) {
+                for (LegacyMapping mapping : variants) {
+                    if (mapping.protocol > ProtocolInfo.CURRENT_PROTOCOL) {
+                        continue;
+                    }
+                    Integer legacyId = legacyIds.get(mapping.legacyName);
+                    if (legacyId == null) {
+                        continue;
+                    }
+
+                    int fullId = getFullId(legacyId, mapping.damage);
+                    int networkFullId = (runtimeId << 1) | 1;
+                    // Keep every supported legacy alias for outbound stacks. Prefer
+                    // flattened variants over generic names that share the same ID.
+                    legacyNetworkMap.put(fullId, networkFullId);
+                    // Decode a modern item to the first (canonical PowerNukkit) legacy
+                    // variant while retaining older aliases for encoding.
+                    if (!networkLegacyMap.containsKey(runtimeId)) {
+                        networkLegacyMap.put(runtimeId, fullId | 1);
+                    }
+                    hasLegacyMapping = true;
+                }
             }
 
-            if (legacyId == null) {
-                continue;
-            }
-
-            int fullId = getFullId(legacyId, hasData ? damage : 0);
-            int networkFullId = (runtimeId << 1) | (hasData ? 1 : 0);
-            // Explicit flattened variants (boat, dye, shulker box, slabs, etc.)
-            // must override the generic legacy alias for the same ID/meta pair.
-            if (hasData || !legacyNetworkMap.containsKey(fullId)) {
-                legacyNetworkMap.put(fullId, networkFullId);
-            }
-            if (!networkLegacyMap.containsKey(runtimeId)) {
-                networkLegacyMap.put(runtimeId, fullId | (hasData ? 1 : 0));
+            if (!hasLegacyMapping) {
+                Integer legacyId = legacyIds.get(identifier);
+                if (legacyId != null) {
+                    int fullId = getFullId(legacyId, 0);
+                    int networkFullId = runtimeId << 1;
+                    if (!legacyNetworkMap.containsKey(fullId)) {
+                        legacyNetworkMap.put(fullId, networkFullId);
+                    }
+                    if (!networkLegacyMap.containsKey(runtimeId)) {
+                        networkLegacyMap.put(runtimeId, fullId);
+                    }
+                }
             }
         }
-
         itemPalette = new RuntimeItemMapping(
                 registry.getItemDataPalette(),
                 legacyNetworkMap,
@@ -118,8 +130,8 @@ public class RuntimeItems {
         return legacyIds;
     }
 
-    private static Map<String, LegacyMapping> loadLegacyMappings() {
-        Map<String, LegacyMapping> mappings = new HashMap<>();
+    private static Map<String, List<LegacyMapping>> loadLegacyMappings() {
+        Map<String, List<LegacyMapping>> mappings = new HashMap<>();
         try (InputStream stream = Server.class.getClassLoader().getResourceAsStream("item_mappings.json")) {
             if (stream == null) {
                 throw new AssertionError("Unable to load item_mappings.json");
@@ -137,7 +149,8 @@ public class RuntimeItems {
                         continue;
                     }
                     int damage = Integer.parseInt(variant.getKey());
-                    mappings.put(identifier, new LegacyMapping(legacyEntry.getKey(), damage, protocol));
+                    mappings.computeIfAbsent(identifier, key -> new ArrayList<>())
+                            .add(new LegacyMapping(legacyEntry.getKey(), damage, protocol));
                 }
             }
         } catch (IOException e) {
