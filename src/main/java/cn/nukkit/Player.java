@@ -57,6 +57,7 @@ import cn.nukkit.nbt.tag.*;
 import cn.nukkit.network.Network;
 import cn.nukkit.network.SourceInterface;
 import cn.nukkit.network.protocol.*;
+import cn.nukkit.network.protocol.data.BedrockDataRegistry;
 import cn.nukkit.network.protocol.types.AuthInputAction;
 import cn.nukkit.network.protocol.types.PlayerActionType;
 import cn.nukkit.network.protocol.types.PlayerBlockActionData;
@@ -2295,7 +2296,16 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
         this.dataPacketImmediately(startGamePacket);
 
-        this.dataPacket(new ItemComponentPacket());
+        ItemComponentPacket itemComponentPacket = new ItemComponentPacket();
+        if (ProtocolInfo.CURRENT_PROTOCOL >= ProtocolInfo.v1_21_60) {
+            List<ItemComponentPacket.ItemDefinition> itemDefinitions = new ArrayList<>();
+            for (BedrockDataRegistry.RuntimeItemState item : BedrockDataRegistry.getDefault().getRuntimeItems()) {
+                itemDefinitions.add(new ItemComponentPacket.ItemDefinition(
+                        item.getName(), item.getId(), item.isComponentBased(), item.getVersion(), null));
+            }
+            itemComponentPacket.setItemDefinitions(itemDefinitions);
+        }
+        this.dataPacket(itemComponentPacket);
 
         this.dataPacket(new BiomeDefinitionListPacket());
         this.dataPacket(new AvailableEntityIdentifiersPacket());
