@@ -247,10 +247,60 @@ public class BlockStateRegistry {
         try {
             state = BlockState.of(stateId);
         } catch (NoSuchElementException|IllegalStateException|IllegalArgumentException ignored) {
-            return -1;
+            return findRuntimeIdForPartialStateId(stateId);
         }
         result = knownRuntimeIdsByStateId.get(state.getStateId());
-        return result == null ? -1 : result;
+        return result == null ? findRuntimeIdForPartialStateId(stateId) : result;
+    }
+
+    private int findRuntimeIdForPartialStateId(String stateId) {
+        int separator = stateId.indexOf(';');
+        String blockName = separator < 0 ? stateId : stateId.substring(0, separator);
+        Map<String, String> requestedProperties = parseStateProperties(stateId, separator);
+        int bestRuntimeId = -1;
+        int bestExtraProperties = Integer.MAX_VALUE;
+
+        for (Map.Entry<String, Integer> entry : knownRuntimeIdsByStateId.entrySet()) {
+            String candidate = entry.getKey();
+            int candidateSeparator = candidate.indexOf(';');
+            String candidateName = candidateSeparator < 0 ? candidate : candidate.substring(0, candidateSeparator);
+            if (!blockName.equals(candidateName)) {
+                continue;
+            }
+
+            Map<String, String> candidateProperties = parseStateProperties(candidate, candidateSeparator);
+            boolean matches = true;
+            for (Map.Entry<String, String> property : requestedProperties.entrySet()) {
+                if (!property.getValue().equals(candidateProperties.get(property.getKey()))) {
+                    matches = false;
+                    break;
+                }
+            }
+            if (!matches || candidateProperties.size() < requestedProperties.size()) {
+                continue;
+            }
+
+            int extraProperties = candidateProperties.size() - requestedProperties.size();
+            if (extraProperties < bestExtraProperties) {
+                bestExtraProperties = extraProperties;
+                bestRuntimeId = entry.getValue();
+            }
+        }
+        return bestRuntimeId;
+    }
+
+    private Map<String, String> parseStateProperties(String stateId, int separator) {
+        Map<String, String> properties = new HashMap<>();
+        if (separator < 0 || separator + 1 >= stateId.length()) {
+            return properties;
+        }
+        for (String property : stateId.substring(separator + 1).split(";")) {
+            int equals = property.indexOf('=');
+            if (equals > 0 && equals < property.length() - 1) {
+                properties.put(property.substring(0, equals), property.substring(equals + 1));
+            }
+        }
+        return properties;
     }
 
     /**
