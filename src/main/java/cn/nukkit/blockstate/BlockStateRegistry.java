@@ -549,8 +549,23 @@ public class BlockStateRegistry {
         Registration registration = new Registration(null, runtimeId, block);
         stateIdRegistration.put(stateId, registration);
 
-        // Keep the full NBT state for runtime-to-block lookups. The palette's legacy
-        // "data" field is not the same as PowerNukkit's packed BlockState storage.
+        // Some legacy block classes encode their state storage identically to the
+        // palette's legacy data field. Register only exact state-ID matches; never
+        // assume the legacy data value is interchangeable with packed storage.
+        int blockId = block.getInt("blockId");
+        if (blockId >= 0) {
+            try {
+                int meta = block.getShort("data") & 0xffff;
+                BlockState legacyState = blockId == BlockID.AIR ? BlockState.AIR : BlockState.of(blockId, meta);
+                if (stateId.equals(legacyState.getStateId())) {
+                    blockStateRegistration.put(legacyState, new Registration(legacyState, runtimeId, null));
+                }
+            } catch (RuntimeException ignored) {
+                // The internal block class may not support this Bedrock state yet.
+            }
+        }
+
+        // Keep the full NBT state for runtime-to-block lookups.
         runtimeIdRegistration.putIfAbsent(runtimeId, registration);
     }
 
