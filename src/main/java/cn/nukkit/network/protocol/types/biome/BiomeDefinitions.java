@@ -1,11 +1,9 @@
 package cn.nukkit.network.protocol.types.biome;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
-import org.cloudburstmc.protocol.common.util.index.Indexable;
 
 import java.util.Map;
 
@@ -14,9 +12,8 @@ import java.util.Map;
 public class BiomeDefinitions {
 
     @Getter(AccessLevel.NONE)
-    transient Indexable<Map<String, BiomeDefinitionData>> definitions;
+    Indexable<Map<String, BiomeDefinitionData>> definitions;
 
-    @JsonCreator
     public BiomeDefinitions(Map<String, BiomeDefinitionData> definitions) {
         this.definitions = new UnindexedBiomes(definitions);
     }

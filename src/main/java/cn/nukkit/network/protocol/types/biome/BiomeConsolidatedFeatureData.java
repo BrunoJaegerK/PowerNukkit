@@ -1,26 +1,22 @@
 package cn.nukkit.network.protocol.types.biome;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
-import org.cloudburstmc.protocol.common.util.index.Indexable;
-import org.cloudburstmc.protocol.common.util.index.Unindexed;
 
 @Value
 @RequiredArgsConstructor(onConstructor_ = { @Deprecated })
 public class BiomeConsolidatedFeatureData {
     BiomeScatterParamData scatter;
     @Getter(AccessLevel.NONE)
-    transient Indexable<String> feature;
+    Indexable<String> feature;
     @Getter(AccessLevel.NONE)
-    transient Indexable<String> identifier;
+    Indexable<String> identifier;
     @Getter(AccessLevel.NONE)
-    transient Indexable<String> pass;
+    Indexable<String> pass;
     boolean internalUse;
 
-    @JsonCreator
     public BiomeConsolidatedFeatureData(BiomeScatterParamData scatter, String feature, String identifier, String pass,
                                         boolean internalUse) {
         this.scatter = scatter;

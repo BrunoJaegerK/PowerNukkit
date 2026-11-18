@@ -2,14 +2,10 @@ package cn.nukkit.network.protocol.types.biome;
 
 
 import cn.nukkit.api.OnlyNetEase;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
-import org.cloudburstmc.protocol.common.util.index.Indexable;
-import org.cloudburstmc.protocol.common.util.index.Unindexed;
-import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.util.List;
@@ -20,9 +16,8 @@ public class BiomeDefinitionData {
     /**
      * Custom biome ID. (uint16)
      */
-    @Nullable
     @Getter(AccessLevel.NONE)
-    public transient Indexable<String> id;
+    public Indexable<String> id;
     public float temperature;
     public float downfall;
     /**
@@ -63,18 +58,14 @@ public class BiomeDefinitionData {
      * @since 1.21.90-netease
      */
     @OnlyNetEase
-    @Nullable
     public String vanilla = "";
-    @Nullable
     @Getter(AccessLevel.NONE)
-    public transient Indexable<List<String>> tags;
-    @Nullable
+    public Indexable<List<String>> tags;
     public BiomeDefinitionChunkGenData chunkGenData;
 
-    @JsonCreator
-    public BiomeDefinitionData(@Nullable String id, float temperature, float downfall, float foliageSnow, float depth,
-                               float scale, Color mapWaterColor, boolean rain, @Nullable List<String> tags,
-                               @Nullable BiomeDefinitionChunkGenData chunkGenData) {
+    public BiomeDefinitionData(String id, float temperature, float downfall, float foliageSnow, float depth,
+                               float scale, Color mapWaterColor, boolean rain, List<String> tags,
+                               BiomeDefinitionChunkGenData chunkGenData) {
         this.id = id == null ? null : new Unindexed<>(id);
         this.temperature = temperature;
         this.downfall = downfall;
@@ -91,11 +82,10 @@ public class BiomeDefinitionData {
         this.chunkGenData = chunkGenData;
     }
 
-    @JsonCreator
-    public BiomeDefinitionData(@Nullable String id, float temperature, float downfall, float redSporeDensity,
+    public BiomeDefinitionData(String id, float temperature, float downfall, float redSporeDensity,
                                float blueSporeDensity, float ashDensity, float whiteAshDensity, float depth,
-                               float scale, Color mapWaterColor, boolean rain, @Nullable List<String> tags,
-                               @Nullable BiomeDefinitionChunkGenData chunkGenData) {
+                               float scale, Color mapWaterColor, boolean rain, List<String> tags,
+                               BiomeDefinitionChunkGenData chunkGenData) {
         this.id = id == null ? null : new Unindexed<>(id);
         this.temperature = temperature;
         this.downfall = downfall;
@@ -112,14 +102,14 @@ public class BiomeDefinitionData {
         this.chunkGenData = chunkGenData;
     }
 
-    public @Nullable String getId() {
+    public String getId() {
         if (id == null) {
             return null;
         }
         return id.get();
     }
 
-    public @Nullable List<String> getTags() {
+    public List<String> getTags() {
         if (tags == null) {
             return null;
         }

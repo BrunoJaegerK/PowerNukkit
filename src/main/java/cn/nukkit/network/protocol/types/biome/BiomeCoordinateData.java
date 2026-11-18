@@ -1,27 +1,23 @@
 package cn.nukkit.network.protocol.types.biome;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
-import org.cloudburstmc.protocol.common.util.index.Indexable;
-import org.cloudburstmc.protocol.common.util.index.Unindexed;
 
 @Value
 @RequiredArgsConstructor(onConstructor_ = { @Deprecated })
 public class BiomeCoordinateData {
     ExpressionOp minValueType;
     @Getter(AccessLevel.NONE)
-    transient Indexable<String> minValue;
+    Indexable<String> minValue;
     ExpressionOp maxValueType;
     @Getter(AccessLevel.NONE)
-    transient Indexable<String> maxValue;
+    Indexable<String> maxValue;
     long gridOffset;
     long gridStepSize;
     RandomDistributionType distribution;
 
-    @JsonCreator
     public BiomeCoordinateData(ExpressionOp minValueType, String minValue, ExpressionOp maxValueType, String maxValue,
                                long gridOffset, long gridStepSize, RandomDistributionType distribution) {
         this.minValueType = minValueType;
