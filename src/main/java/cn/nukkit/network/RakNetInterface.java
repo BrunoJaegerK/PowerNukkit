@@ -450,9 +450,15 @@ public class RakNetInterface implements RakNetServerListener, AdvancedSourceInte
             batched.putUnsignedVarInt(buf.length);
             batched.put(buf);
             try {
-                byte[] payload = Network.deflateRaw(batched.getBuffer(), network.getServer().networkCompressionLevel);
-                ByteBuf byteBuf = ByteBufAllocator.DEFAULT.ioBuffer(1 + payload.length);
+                byte[] payload = this.compressionEnabled
+                        ? Network.deflateRaw(batched.getBuffer(), network.getServer().networkCompressionLevel)
+                        : batched.getBuffer();
+                int prefixLength = this.compressionEnabled ? 1 : 0;
+                ByteBuf byteBuf = ByteBufAllocator.DEFAULT.ioBuffer(1 + prefixLength + payload.length);
                 byteBuf.writeByte(0xfe);
+                if (this.compressionEnabled) {
+                    byteBuf.writeByte(0x00); // ZLIB_RAW
+                }
                 byteBuf.writeBytes(payload);
                 this.raknet.send(byteBuf);
             } catch (Exception e) {
