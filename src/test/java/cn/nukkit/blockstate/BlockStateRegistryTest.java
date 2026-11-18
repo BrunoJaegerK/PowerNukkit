@@ -34,10 +34,10 @@ class BlockStateRegistryTest {
         // The reverse lookup returns the palette's canonical name, not necessarily
         // the legacy name used by the internal block implementation.
         assertEquals(runtimeId, BlockStateRegistry.getKnownRuntimeIdByBlockStateId(canonicalStateId));
-        // Legacy names and shortened state IDs may not exist in the current Bedrock palette.
-        assertEquals(-1, BlockStateRegistry.getKnownRuntimeIdByBlockStateId(stateId));
-        assertEquals(-1, BlockStateRegistry.getKnownRuntimeIdByBlockStateId(minimalistStateId));
-        assertEquals(-1, BlockStateRegistry.getKnownRuntimeIdByBlockStateId(legacyStateId));
+        // Legacy wall variants are translated to the modern flattened Bedrock names.
+        assertEquals(runtimeId, BlockStateRegistry.getKnownRuntimeIdByBlockStateId(stateId));
+        assertEquals(runtimeId, BlockStateRegistry.getKnownRuntimeIdByBlockStateId(minimalistStateId));
+        assertEquals(runtimeId, BlockStateRegistry.getKnownRuntimeIdByBlockStateId(legacyStateId));
         assertEquals(-1, BlockStateRegistry.getKnownRuntimeIdByBlockStateId(unknownStateId));
         assertEquals(BlockID.COBBLE_WALL, BlockStateRegistry.getBlockIdByRuntimeId(runtimeId));
     }

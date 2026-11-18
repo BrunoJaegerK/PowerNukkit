@@ -239,6 +239,17 @@ public class BlockStateRegistry {
     @PowerNukkitOnly
     @Since("1.5.2.0-PN")
     public int getKnownRuntimeIdByBlockStateId(String stateId) {
+        String normalizedStateId = normalizeLegacyStateId(stateId);
+        if (!normalizedStateId.equals(stateId)) {
+            Integer normalizedRuntimeId = knownRuntimeIdsByStateId.get(normalizedStateId);
+            if (normalizedRuntimeId != null) {
+                return normalizedRuntimeId;
+            }
+            int normalizedPartialRuntimeId = findRuntimeIdForPartialStateId(normalizedStateId);
+            if (normalizedPartialRuntimeId != -1) {
+                return normalizedPartialRuntimeId;
+            }
+        }
         Integer result = knownRuntimeIdsByStateId.get(stateId);
         if (result != null) {
             return result;
@@ -251,6 +262,50 @@ public class BlockStateRegistry {
         }
         result = knownRuntimeIdsByStateId.get(state.getStateId());
         return result == null ? findRuntimeIdForPartialStateId(stateId) : result;
+    }
+
+    /**
+     * Translate legacy variant block identifiers into the flattened names used by
+     * modern Bedrock palettes. This keeps old PowerNukkit block implementations
+     * addressable without changing their persisted IDs or property model.
+     */
+    private String normalizeLegacyStateId(String stateId) {
+        int separator = stateId.indexOf(';');
+        String blockName = separator < 0 ? stateId : stateId.substring(0, separator);
+        if (!"minecraft:cobblestone_wall".equals(blockName)) {
+            return stateId;
+        }
+
+        Map<String, String> properties = parseStateProperties(stateId, separator);
+        String wallType = properties.remove("wall_block_type");
+        if (wallType == null) {
+            return stateId;
+        }
+
+        String flattenedName;
+        switch (wallType) {
+            case "cobblestone": flattenedName = "cobblestone_wall"; break;
+            case "mossy_cobblestone": flattenedName = "mossy_cobblestone_wall"; break;
+            case "granite": flattenedName = "granite_wall"; break;
+            case "diorite": flattenedName = "diorite_wall"; break;
+            case "andesite": flattenedName = "andesite_wall"; break;
+            case "sandstone": flattenedName = "sandstone_wall"; break;
+            case "brick": flattenedName = "brick_wall"; break;
+            case "stone_brick": flattenedName = "stone_brick_wall"; break;
+            case "mossy_stone_brick": flattenedName = "mossy_stone_brick_wall"; break;
+            case "end_brick": flattenedName = "end_stone_brick_wall"; break;
+            case "nether_brick": flattenedName = "nether_brick_wall"; break;
+            case "prismarine": flattenedName = "prismarine_wall"; break;
+            case "red_sandstone": flattenedName = "red_sandstone_wall"; break;
+            case "red_nether_brick": flattenedName = "red_nether_brick_wall"; break;
+            default: return stateId;
+        }
+
+        StringBuilder normalized = new StringBuilder("minecraft:").append(flattenedName);
+        for (Map.Entry<String, String> property : new TreeMap<>(properties).entrySet()) {
+            normalized.append(';').append(property.getKey()).append('=').append(property.getValue());
+        }
+        return normalized.toString();
     }
 
     private int findRuntimeIdForPartialStateId(String stateId) {

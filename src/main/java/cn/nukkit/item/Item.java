@@ -754,8 +754,30 @@ public class Item implements Cloneable, BlockID, ItemID {
                     }
                 }
                 return item;
-            } else if (namespaceGroup != null && !namespaceGroup.equals("minecraft:")) {
-                return get(AIR);
+            } else {
+                // The enum is intentionally not exhaustive: newer Bedrock releases add
+                // namespaced items faster than the legacy compatibility enum is updated.
+                // Resolve known runtime identifiers directly before falling back to legacy IDs.
+                try {
+                    RuntimeItemMapping runtimeMapping = RuntimeItems.getRuntimeMapping();
+                    if (runtimeMapping.getNetworkIdByNamespaceId(namespacedId).isPresent()) {
+                        Item item = runtimeMapping.getItemByNamespaceId(namespacedId, 1);
+                        if (meta.isPresent()) {
+                            int damage = meta.getAsInt();
+                            if (damage < 0) {
+                                item = item.createFuzzyCraftingRecipe();
+                            } else {
+                                item.setDamage(damage);
+                            }
+                        }
+                        return item;
+                    }
+                } catch (IllegalArgumentException ignored) {
+                    // Continue through the legacy lookup path for unsupported aliases.
+                }
+                if (namespaceGroup != null && !namespaceGroup.equals("minecraft")) {
+                    return get(AIR);
+                }
             }
         } else if (numericIdGroup != null) {
             int id = Integer.parseInt(numericIdGroup);

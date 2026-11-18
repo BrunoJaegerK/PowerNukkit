@@ -558,7 +558,7 @@
     <item namespaced-id="minecraft:nautilus_shell" numeric-id="465" name="Nautilus Shell"/>
     <item namespaced-id="minecraft:enchanted_golden_apple" numeric-id="466" name="Enchanted Golden Apple"/>
     <item namespaced-id="minecraft:heart_of_the_sea" numeric-id="467" name="Heart Of The Sea"/>
-    <item namespaced-id="minecraft:scute" numeric-id="468" name="Scute"/>
+    <item namespaced-id="minecraft:turtle_scute" numeric-id="468" name="Scute"/>
     <item namespaced-id="minecraft:turtle_helmet" numeric-id="469" name="Turtle Shell" armor="true" tier="other" durability="276" stack-size="1" helmet="true"/>
     <item namespaced-id="minecraft:phantom_membrane" numeric-id="470" name="Phantom Membrane"/>
     <item namespaced-id="minecraft:crossbow" numeric-id="471" name="Crossbow" fuel-time="200" stack-size="1" durability="464" tool="true"/>
@@ -606,7 +606,7 @@
     <item namespaced-id="minecraft:crimson_door" numeric-id="755" name="Crimson Door"/>
     <item namespaced-id="minecraft:warped_door" numeric-id="756" name="Warped Door"/>
     <item namespaced-id="minecraft:warped_fungus_on_a_stick" numeric-id="757" name="Warped Fungus on a Stick" stack-size="1" durability="101" tool="true"/>
-    <item namespaced-id="minecraft:chain" numeric-id="758" name="Chain"/>
+    <item namespaced-id="minecraft:iron_chain" numeric-id="758" name="Chain"/>
     <item namespaced-id="minecraft:music_disc_pigstep" numeric-id="759" name="Music Disc Pigstep" stack-size="1"/>
     <item namespaced-id="minecraft:nether_sprouts" numeric-id="760" name="Nether Sprouts"/>
     <item namespaced-id="minecraft:spyglass" numeric-id="772" name="Spyglass" stack-size="1" />
