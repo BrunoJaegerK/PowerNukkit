@@ -483,6 +483,8 @@ public class PlayerInventory extends BaseInventory {
 
         if (!p.isSpectator()) { //fill it for all gamemodes except spectator
             pk.entries = Item.getCreativeItems().toArray(Item.EMPTY_ARRAY);
+            pk.groups = Item.getCreativeItemGroups();
+            pk.itemGroups = Item.getCreativeItemGroupMap();
         }
 
         p.dataPacket(pk);

@@ -451,7 +451,9 @@ public class Item implements Cloneable, BlockID, ItemID {
         return itemList;
     }
 
-    private static final ArrayList<Item> creative = new ArrayList<>();
+        private static final ArrayList<Item> creative = new ArrayList<>();
+    private static final ArrayList<CreativeItemGroup> creativeGroups = new ArrayList<>();
+    private static final Map<Item, CreativeItemGroup> creativeItemGroups = new LinkedHashMap<>();
 
     @SneakyThrows(IOException.class)
     @SuppressWarnings("unchecked")
@@ -470,13 +472,39 @@ public class Item implements Cloneable, BlockID, ItemID {
         try (InputStream resourceAsStream = creativeStream) {
             config.load(resourceAsStream);
         }
-        List<Map> list = config.getMapList("items");
+        List<Map> groups = config.getMapList("groups");
+        for (Map group : groups) {
+            try {
+                Map<String, Object> iconData = group.get("icon") instanceof Map
+                        ? (Map<String, Object>) group.get("icon") : Collections.<String, Object>emptyMap();
+                Item icon = iconData.isEmpty() ? Item.get(AIR) : loadCreativeItemEntry(iconData);
+                if (icon == null) {
+                    icon = Item.get(AIR);
+                }
+                String categoryName = String.valueOf(group.getOrDefault("category", "undefined"));
+                CreativeItemCategory category;
+                try {
+                    category = CreativeItemCategory.valueOf(categoryName.toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException ignored) {
+                    category = CreativeItemCategory.UNDEFINED;
+                }
+                String name = String.valueOf(group.getOrDefault("name", ""));
+                creativeGroups.add(new CreativeItemGroup(creativeGroups.size(), category, name, icon));
+            } catch (Exception e) {
+                log.error("Error while registering a creative item group", e);
+            }
+        }
 
+        List<Map> list = config.getMapList("items");
         for (Map map : list) {
             try {
                 Item item = loadCreativeItemEntry(map);
                 if (item != null) {
-                    addCreativeItem(item);
+                    int groupId = map.get("groupId") instanceof Number
+                            ? ((Number) map.get("groupId")).intValue() : -1;
+                    CreativeItemGroup group = groupId >= 0 && groupId < creativeGroups.size()
+                            ? creativeGroups.get(groupId) : null;
+                    addCreativeItem(item, group);
                 }
             } catch (Exception e) {
                 log.error("Error while registering a creative item", e);
@@ -578,20 +606,41 @@ public class Item implements Cloneable, BlockID, ItemID {
 
     public static void clearCreativeItems() {
         Item.creative.clear();
+        Item.creativeGroups.clear();
+        Item.creativeItemGroups.clear();
     }
 
     public static ArrayList<Item> getCreativeItems() {
         return new ArrayList<>(Item.creative);
     }
 
+    public static ArrayList<CreativeItemGroup> getCreativeItemGroups() {
+        return new ArrayList<>(Item.creativeGroups);
+    }
+
+    public static Map<Item, CreativeItemGroup> getCreativeItemGroupMap() {
+        return new LinkedHashMap<>(Item.creativeItemGroups);
+    }
+
+    public static CreativeItemGroup getCreativeItemGroup(Item item) {
+        return Item.creativeItemGroups.get(item);
+    }
+
     public static void addCreativeItem(Item item) {
-        Item.creative.add(item.clone());
+        addCreativeItem(item, null);
+    }
+
+    public static void addCreativeItem(Item item, CreativeItemGroup group) {
+        Item creativeItem = item.clone();
+        Item.creative.add(creativeItem);
+        Item.creativeItemGroups.put(creativeItem, group);
     }
 
     public static void removeCreativeItem(Item item) {
         int index = getCreativeItemIndex(item);
         if (index != -1) {
-            Item.creative.remove(index);
+            Item removed = Item.creative.remove(index);
+            Item.creativeItemGroups.remove(removed);
         }
     }
 
