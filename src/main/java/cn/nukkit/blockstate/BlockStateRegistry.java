@@ -373,7 +373,7 @@ public class BlockStateRegistry {
     private Registration findRegistrationByStateId(BlockState state) {
         Registration registration;
         try {
-            registration = stateIdRegistration.remove(state.getStateId());
+            registration = stateIdRegistration.get(state.getStateId());
             if (registration != null) {
                 registration.state = state;
                 registration.originalBlock = null;
@@ -398,7 +398,7 @@ public class BlockStateRegistry {
         }
         
         try {
-            registration = stateIdRegistration.remove(state.getLegacyStateId());
+            registration = stateIdRegistration.get(state.getLegacyStateId());
             if (registration != null) {
                 registration.state = state;
                 registration.originalBlock = null;
