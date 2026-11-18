@@ -81,7 +81,9 @@ public class RuntimeItems {
 
             int fullId = getFullId(legacyId, hasData ? damage : 0);
             int networkFullId = (runtimeId << 1) | (hasData ? 1 : 0);
-            if (!legacyNetworkMap.containsKey(fullId)) {
+            // Explicit flattened variants (boat, dye, shulker box, slabs, etc.)
+            // must override the generic legacy alias for the same ID/meta pair.
+            if (hasData || !legacyNetworkMap.containsKey(fullId)) {
                 legacyNetworkMap.put(fullId, networkFullId);
             }
             if (!networkLegacyMap.containsKey(runtimeId)) {
