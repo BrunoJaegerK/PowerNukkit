@@ -446,45 +446,48 @@ public class BlockStateRegistry {
 
     private Registration findRegistrationByStateId(BlockState state) {
         Registration registration;
+        String stateId;
         try {
-            registration = stateIdRegistration.get(state.getStateId());
+            stateId = state.getStateId();
+            registration = stateIdRegistration.get(stateId);
             if (registration != null) {
                 registration.state = state;
                 registration.originalBlock = null;
                 return registration;
             }
         } catch (Exception e) {
-            try {
-                log.fatal("An error has occurred while trying to get the stateId of state: "
-                        + "{}:{}"
-                        + " - {}"
-                        + " - {}",
-                        state.getBlockId(),
-                        state.getDataStorage(),
-                        state.getProperties(),
-                        blockIdToPersistenceName.get(state.getBlockId()),
-                        e);
-            } catch (Exception e2) {
-                e.addSuppressed(e2);
-                log.fatal("An error has occurred while trying to get the stateId of state: {}:{}",
-                        state.getBlockId(), state.getDataStorage(), e);
-            }
-        }
-        
-        try {
-            registration = stateIdRegistration.get(state.getLegacyStateId());
-            if (registration != null) {
-                registration.state = state;
-                registration.originalBlock = null;
-                return registration;
-            }
-        } catch (Exception e) {
-            log.fatal("An error has occurred while trying to parse the legacyStateId of {}:{}", state.getBlockId(), state.getDataStorage(), e);
+            log.fatal("An error has occurred while trying to get the stateId of state: {}:{}",
+                    state.getBlockId(), state.getDataStorage(), e);
+            stateId = null;
         }
 
+        try {
+            String legacyStateId = state.getLegacyStateId();
+            registration = stateIdRegistration.get(legacyStateId);
+            if (registration != null) {
+                registration.state = state;
+                registration.originalBlock = null;
+                return registration;
+            }
+        } catch (Exception e) {
+            log.fatal("An error has occurred while trying to parse the legacyStateId of {}:{}",
+                    state.getBlockId(), state.getDataStorage(), e);
+        }
+
+        if (stateId != null) {
+            int runtimeId = getKnownRuntimeIdByBlockStateId(stateId);
+            if (runtimeId != -1) {
+                registration = runtimeIdRegistration.get(runtimeId);
+                if (registration != null) {
+                    registration.state = state;
+                    registration.originalBlock = null;
+                    return registration;
+                }
+            }
+        }
         return logDiscoveryError(state);
     }
-    
+
     private void removeStateIdsAsync(@Nullable Registration registration) {
         // Modern Bedrock palettes intentionally allow several persistent block states
         // to share a runtime ID (state overloads and legacy aliases). Removing every
@@ -546,18 +549,8 @@ public class BlockStateRegistry {
         Registration registration = new Registration(null, runtimeId, block);
         stateIdRegistration.put(stateId, registration);
 
-        int blockId = block.getInt("blockId");
-        if (blockId >= 0) {
-            int meta = block.getShort("data") & 0xffff;
-            BlockState legacyState = blockId == BlockID.AIR ? BlockState.AIR : BlockState.of(blockId, meta);
-            Registration legacyRegistration = new Registration(legacyState, runtimeId, null);
-
-            // Multiple Bedrock identifiers can share one legacy block/meta pair.
-            // Later palette entries intentionally replace the previous legacy mapping.
-            blockStateRegistration.put(legacyState, legacyRegistration);
-        }
-
-        // Preserve the first reverse mapping when multiple palette entries share one runtime ID.
+        // Keep the full NBT state for runtime-to-block lookups. The palette's legacy
+        // "data" field is not the same as PowerNukkit's packed BlockState storage.
         runtimeIdRegistration.putIfAbsent(runtimeId, registration);
     }
 
