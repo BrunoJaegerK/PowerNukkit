@@ -14,14 +14,14 @@ public class AvailableEntityIdentifiersPacket extends DataPacket {
 
     static {
         try {
-            InputStream inputStream = Nukkit.class.getClassLoader().getResourceAsStream("entity_identifiers.dat");
+            InputStream inputStream = Nukkit.class.getClassLoader().getResourceAsStream("bedrock/1.26.65/entity_identifiers_582.dat");
             if (inputStream == null) {
-                throw new AssertionError("Could not find entity_identifiers.dat");
+                throw new AssertionError("Could not find Bedrock 1.26.65 entity_identifiers_582.dat");
             }
             //noinspection UnstableApiUsage
             TAG = ByteStreams.toByteArray(inputStream);
         } catch (Exception e) {
-            throw new AssertionError("Error whilst loading entity_identifiers.dat", e);
+            throw new AssertionError("Error whilst loading Bedrock 1.26.65 entity identifiers", e);
         }
     }
 
