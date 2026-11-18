@@ -43,6 +43,8 @@ public class CraftingManager {
 
     public final Collection<Recipe> recipes = new ArrayDeque<>();
 
+    private final Set<String> loggedUnsupportedRecipeBlocks = new HashSet<>();
+
     @Since("1.5.0.0-PN")
     public static DataPacket packet = null;
 
@@ -302,6 +304,35 @@ public class CraftingManager {
         registerCartographyRecipe(new CartographyRecipe(Item.get(ItemID.MAP, 5), Collections.singletonList(Item.get(ItemID.MAP, 5))));
     }
 
+    private Item loadModernRecipeItem(String blockStateId, int runtimeId, int count, byte[] nbtBytes, boolean fuzzy) {
+        String canonicalStateId = runtimeId < 0
+                ? null : BlockStateRegistry.getKnownBlockStateIdByRuntimeId(runtimeId);
+        String itemIdentifier = canonicalStateId == null || canonicalStateId.isEmpty()
+                ? blockStateId : canonicalStateId;
+        int separator = itemIdentifier.indexOf(';');
+        if (separator >= 0) {
+            itemIdentifier = itemIdentifier.substring(0, separator);
+        }
+
+        try {
+            Item item = Item.fromString(itemIdentifier);
+            if (item == null || item.getId() == BlockID.AIR) {
+                return null;
+            }
+            item.setCount(count);
+            item.setCompoundTag(nbtBytes);
+            return fuzzy ? item.createFuzzyCraftingRecipe() : item;
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private void warnUnsupportedRecipeBlock(String blockStateId) {
+        if (this.loggedUnsupportedRecipeBlocks.add(blockStateId)) {
+            log.warn("Skipping recipe block state without a supported legacy item mapping: {}", blockStateId);
+        }
+    }
+
     private Item parseRecipeItem(Map<String, Object> data) {
         String nbt = (String) data.get("nbt_b64");
         boolean fuzzy = data.containsKey("fuzzy") && Boolean.parseBoolean(data.get("fuzzy").toString());
@@ -342,20 +373,19 @@ public class CraftingManager {
                 return item;
             } catch (BlockPropertyNotFoundException | UnknownRuntimeIdException e) {
                 int runtimeId = BlockStateRegistry.getKnownRuntimeIdByBlockStateId(blockStateId);
-                if (runtimeId == -1) {
-                    log.warn("Unsupported block found in recipes.json: {}", blockStateId);
-                    return Item.get(BlockID.AIR);
+                Item fallback = loadModernRecipeItem(blockStateId, runtimeId, count, nbtBytes, fuzzy);
+                if (fallback != null) {
+                    return fallback;
                 }
-                int blockId = BlockStateRegistry.getBlockIdByRuntimeId(runtimeId);
-                BlockState defaultBlockState = BlockState.of(blockId);
-                if (defaultBlockState.getProperties().equals(BlockUnknown.PROPERTIES)) {
-                    log.warn("Unsupported block found in recipes.json: {}", blockStateId);
-                    return Item.get(BlockID.AIR);
-                }
-                log.error("Failed to load a recipe with {}", blockStateId, e);
+                warnUnsupportedRecipeBlock(blockStateId);
                 return Item.get(BlockID.AIR);
             } catch (Exception e) {
-                log.error("Failed to load the block state {}", blockStateId, e);
+                int runtimeId = BlockStateRegistry.getKnownRuntimeIdByBlockStateId(blockStateId);
+                Item fallback = loadModernRecipeItem(blockStateId, runtimeId, count, nbtBytes, fuzzy);
+                if (fallback != null) {
+                    return fallback;
+                }
+                warnUnsupportedRecipeBlock(blockStateId);
                 return Item.getBlock(BlockID.AIR);
             }
         }

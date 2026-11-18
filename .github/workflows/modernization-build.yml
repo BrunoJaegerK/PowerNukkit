@@ -39,7 +39,7 @@ jobs:
         run: ./mvnw --no-transfer-progress -B clean verify -DskipTests=false
 
       - name: Upload build artifacts
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: powernukkit-modernization-${{ github.sha }}
