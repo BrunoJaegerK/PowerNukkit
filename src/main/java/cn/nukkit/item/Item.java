@@ -459,7 +459,15 @@ public class Item implements Cloneable, BlockID, ItemID {
         clearCreativeItems();
 
         Config config = new Config(Config.JSON);
-        try(InputStream resourceAsStream = Server.class.getClassLoader().getResourceAsStream("creativeitems.json")) {
+        InputStream creativeStream = Server.class.getClassLoader()
+                .getResourceAsStream("bedrock/1.26.65/creative_items_2225.json");
+        if (creativeStream == null) {
+            creativeStream = Server.class.getClassLoader().getResourceAsStream("creativeitems.json");
+        }
+        if (creativeStream == null) {
+            throw new IllegalStateException("No Bedrock creative item registry resource was found");
+        }
+        try (InputStream resourceAsStream = creativeStream) {
             config.load(resourceAsStream);
         }
         List<Map> list = config.getMapList("items");
@@ -477,84 +485,95 @@ public class Item implements Cloneable, BlockID, ItemID {
     }
 
     private static Item loadCreativeItemEntry(Map<String, Object> data) {
+        data = new HashMap<>(data);
         String nbt = (String) data.get("nbt_b64");
         byte[] nbtBytes = nbt != null ? Base64.getDecoder().decode(nbt) : EmptyArrays.EMPTY_BYTES;
 
+        if (data.containsKey("block_state_b64")) {
+            byte[] blockStateBytes = Base64.getDecoder().decode(data.get("block_state_b64").toString());
+            String blockStateId = getCreativeBlockStateId(blockStateBytes);
+            if (blockStateId != null) {
+                data.put("blockState", blockStateId);
+            }
+        }
+
         if (data.containsKey("blockState")) {
             String blockStateId = data.get("blockState").toString();
-            // TODO Remove this when the support is added to these blocks
-            if (Stream.of(
-                    "minecraft:candle",
-                    "minecraft:deepslate",
-                    "minecraft:cracked_deepslate_bricks",
-                    "minecraft:cracked_deepslate_tiles",
-                    "minecraft:smooth_basalt"
-            ).anyMatch(blockStateId::startsWith)) {
-                return null;
-            }
             try {
-                // TODO Remove this when the support is added to these blocks
-                String[] stateParts = blockStateId.split(";", 2);
-                Integer blockId = BlockStateRegistry.getBlockId(stateParts[0]);
-                if (blockId != null && blockId > BlockID.QUARTZ_BRICKS) {
-                    return Item.getBlock(BlockID.AIR);
-                }
-
                 BlockState state = BlockState.of(blockStateId);
                 Item item = state.asItemBlock();
                 item.setCompoundTag(nbtBytes);
                 return item;
             } catch (BlockPropertyNotFoundException | UnknownRuntimeIdException e) {
                 int runtimeId = BlockStateRegistry.getKnownRuntimeIdByBlockStateId(blockStateId);
-                if (runtimeId == -1) {
-                    log.warn("Unsupported block found in creativeitems.json: {}", blockStateId);
-                    return null;
+                if (runtimeId != -1) {
+                    try {
+                        BlockState state = BlockStateRegistry.getBlockStateByRuntimeId(runtimeId);
+                        if (state != null && !state.getProperties().equals(BlockUnknown.PROPERTIES)) {
+                            Item item = state.asItemBlock();
+                            item.setCompoundTag(nbtBytes);
+                            return item;
+                        }
+                    } catch (Exception ignored) {
+                        // Fall through to the namespaced item fallback below.
+                    }
                 }
-                int blockId = BlockStateRegistry.getBlockIdByRuntimeId(runtimeId);
-                BlockState defaultBlockState = BlockState.of(blockId);
-                if (defaultBlockState.getProperties().equals(BlockUnknown.PROPERTIES)) {
-                    log.warn("Unsupported block found in creativeitems.json: {}", blockStateId);
-                    return null;
-                }
-                log.error("Failed to load the creative item with {}", blockStateId, e);
-                return null;
+                log.warn("Creative block state is not implemented internally; using its namespaced item: {}", blockStateId);
             } catch (Exception e) {
-                log.error("Failed to load the creative item {}", blockStateId, e);
-                return null;
+                log.warn("Could not fully resolve creative block state {}; using its namespaced item", blockStateId, e);
             }
         }
 
-        String id = data.get("id").toString();
+        String id = data.get("id") == null ? null : data.get("id").toString();
+        if (id == null || id.isEmpty()) {
+            return null;
+        }
+
         Item item = null;
         if (data.containsKey("damage")) {
             int meta = Utils.toInt(data.get("damage"));
             item = fromString(id + ":" + meta);
         } else if (data.containsKey("blockRuntimeId")) {
-            Integer blockId = BlockStateRegistry.getBlockId(id);
-            if (blockId == null || blockId > BlockID.QUARTZ_BRICKS) { //TODO Remove this after the support is added
-                return null;
-            }
-            int blockRuntimeId = -1;
             try {
-                blockRuntimeId = ((Number) data.get("blockRuntimeId")).intValue();
+                int blockRuntimeId = ((Number) data.get("blockRuntimeId")).intValue();
                 BlockState blockState = BlockStateRegistry.getBlockStateByRuntimeId(blockRuntimeId);
-                if (blockState != null) {
+                if (blockState != null && !blockState.getProperties().equals(BlockUnknown.PROPERTIES)) {
                     item = blockState.asItemBlock();
-                } else {
-                    log.warn("Block state not found for the creative item {} with runtimeId {}", id, blockRuntimeId);
                 }
-            } catch (Throwable e) {
-                log.error("Error loading the creative item {} with runtimeId {}", id, blockRuntimeId, e);
-                return null;
+            } catch (Exception e) {
+                log.warn("Could not resolve legacy creative block runtime ID {} for {}", data.get("blockRuntimeId"), id, e);
             }
         }
 
         if (item == null) {
-            item = fromString(id);
+            try {
+                item = fromString(id);
+            } catch (Exception e) {
+                log.debug("Skipping unsupported creative item {}", id, e);
+                return null;
+            }
         }
 
         item.setCompoundTag(nbtBytes);
         return item;
+    }
+
+    private static String getCreativeBlockStateId(byte[] blockStateBytes) {
+        if (blockStateBytes == null || blockStateBytes.length == 0) {
+            return null;
+        }
+        for (ByteOrder order : new ByteOrder[]{ByteOrder.LITTLE_ENDIAN, ByteOrder.BIG_ENDIAN}) {
+            try {
+                CompoundTag blockState = NBTIO.read(blockStateBytes, order, false);
+                String stateId = BlockStateRegistry.getStateIdFromNbt(blockState);
+                if (stateId != null && !stateId.isEmpty()) {
+                    return stateId;
+                }
+            } catch (IOException | RuntimeException ignored) {
+                // Bedrock resources have appeared in both byte orders across protocol revisions.
+            }
+        }
+        return null;
     }
 
     public static void clearCreativeItems() {

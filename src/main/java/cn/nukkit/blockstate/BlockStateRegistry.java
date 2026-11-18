@@ -204,6 +204,10 @@ public class BlockStateRegistry {
     }
     
     @Nonnull
+    public String getStateIdFromNbt(CompoundTag block) {
+        return getStateId(block);
+    }
+
     private String getStateId(CompoundTag block) {
         Map<String, String> propertyMap = new TreeMap<>(HumanStringComparator.getInstance());
         for (Tag tag : block.getCompound("states").getAllTags()) {
