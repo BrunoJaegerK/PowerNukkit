@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import cn.nukkit.utils.BinaryStream;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,27 +29,37 @@ public final class BedrockDataRegistry {
     private final Map<Integer, RuntimeItemState> itemsById;
     private final Map<String, JsonObject> blockProperties;
     private final Map<String, List<String>> itemTags;
+    private final List<RuntimeItemState> runtimeItems;
+    private final byte[] itemDataPalette;
+    private static volatile BedrockDataRegistry defaultRegistry;
 
     private BedrockDataRegistry(Map<String, RuntimeItemState> itemsByName,
                                 Map<Integer, RuntimeItemState> itemsById,
                                 Map<String, JsonObject> blockProperties,
-                                Map<String, List<String>> itemTags) {
+                                Map<String, List<String>> itemTags,
+                                List<RuntimeItemState> runtimeItems,
+                                byte[] itemDataPalette) {
         this.itemsByName = Collections.unmodifiableMap(itemsByName);
         this.itemsById = Collections.unmodifiableMap(itemsById);
         this.blockProperties = Collections.unmodifiableMap(blockProperties);
         this.itemTags = Collections.unmodifiableMap(itemTags);
+        this.runtimeItems = Collections.unmodifiableList(runtimeItems);
+        this.itemDataPalette = itemDataPalette.clone();
     }
 
     public static BedrockDataRegistry loadDefault() throws IOException {
         ClassLoader loader = BedrockDataRegistry.class.getClassLoader();
-        Map<String, RuntimeItemState> itemsByName = new HashMap<>();
+        Map<String, RuntimeItemState> itemsByName = new LinkedHashMap<>();
         Map<Integer, RuntimeItemState> itemsById = new HashMap<>();
-        Map<String, JsonObject> blockProperties = new HashMap<>();
-        Map<String, List<String>> itemTags = new HashMap<>();
+        Map<String, JsonObject> blockProperties = new LinkedHashMap<>();
+        Map<String, List<String>> itemTags = new LinkedHashMap<>();
+        List<RuntimeItemState> runtimeItems = new ArrayList<>();
+        BinaryStream itemPalette = new BinaryStream();
 
         try (InputStream stream = requiredResource(loader, ROOT + "runtime_item_states_2225.json");
              InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
             JsonArray entries = new JsonParser().parse(reader).getAsJsonArray();
+            itemPalette.putUnsignedVarInt(entries.size());
             for (JsonElement element : entries) {
                 JsonObject entry = element.getAsJsonObject();
                 String name = requiredString(entry, "name");
@@ -55,6 +67,10 @@ public final class BedrockDataRegistry {
                 int version = entry.get("version").getAsInt();
                 boolean componentBased = entry.get("componentBased").getAsBoolean();
                 RuntimeItemState state = new RuntimeItemState(name, id, version, componentBased);
+                runtimeItems.add(state);
+                itemPalette.putString(name.startsWith("minecraft:") ? name.substring("minecraft:".length()) : name);
+                itemPalette.putLShort(id);
+                itemPalette.putBoolean(componentBased);
                 if (itemsByName.put(name, state) != null) {
                     throw new IllegalStateException("Duplicate Bedrock runtime item name: " + name);
                 }
@@ -93,7 +109,7 @@ public final class BedrockDataRegistry {
         if (itemsByName.isEmpty() || blockProperties.isEmpty() || itemTags.isEmpty()) {
             throw new IllegalStateException("Bedrock 1.26.65 data registry is incomplete");
         }
-        return new BedrockDataRegistry(itemsByName, itemsById, blockProperties, itemTags);
+        return new BedrockDataRegistry(itemsByName, itemsById, blockProperties, itemTags, runtimeItems, itemPalette.getBuffer());
     }
 
     private static InputStream requiredResource(ClassLoader loader, String path) {
@@ -114,6 +130,36 @@ public final class BedrockDataRegistry {
             throw new IllegalStateException("Empty required JSON property: " + key);
         }
         return result;
+    }
+
+    public static BedrockDataRegistry getDefault() {
+        BedrockDataRegistry registry = defaultRegistry;
+        if (registry == null) {
+            synchronized (BedrockDataRegistry.class) {
+                registry = defaultRegistry;
+                if (registry == null) {
+                    try {
+                        registry = loadDefault();
+                    } catch (IOException e) {
+                        throw new IllegalStateException("Unable to load Bedrock 1.26.65 metadata", e);
+                    }
+                    defaultRegistry = registry;
+                }
+            }
+        }
+        return registry;
+    }
+
+    public byte[] getItemDataPalette() {
+        return itemDataPalette.clone();
+    }
+
+    public List<RuntimeItemState> getRuntimeItems() {
+        return runtimeItems;
+    }
+
+    public Map<String, JsonObject> getBlockPropertiesEntries() {
+        return blockProperties;
     }
 
     public RuntimeItemState getItem(String identifier) {
