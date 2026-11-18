@@ -278,4 +278,39 @@ public interface ProtocolInfo {
     @Since("1.5.2.0-PN") @PowerNukkitOnly byte NPC_DIALOGUE_PACKET = (byte) 0xa9;
 
     byte BATCH_PACKET = (byte) 0xff;
+
+    // Additional Bedrock packet identifiers required by modern clients.
+    byte REMOVE_OBJECTIVE_PACKET = (byte) 0x6a;
+    byte SET_DISPLAY_OBJECTIVE_PACKET = (byte) 0x6b;
+    byte SET_SCORE_PACKET = (byte) 0x6c;
+    byte LAB_TABLE_PACKET = (byte) 0x6d;
+    byte UPDATE_BLOCK_SYNCED_PACKET = (byte) 0x6e;
+    byte ADD_ENTITY_PACKET_2 = (byte) 0x7f;
+    byte REMOVE_ENTITY_PACKET_2 = (byte) 0x80;
+    byte EDU_URI_RESOURCE_PACKET = (byte) 0xaa;
+    byte CREATE_PHOTO_PACKET = (byte) 0xab;
+    byte UPDATE_SUB_CHUNK_BLOCKS_PACKET = (byte) 0xac;
+    byte PHOTO_INFO_REQUEST_PACKET = (byte) 0xad;
+    byte SUB_CHUNK_PACKET = (byte) 0xae;
+    byte SUB_CHUNK_REQUEST_PACKET = (byte) 0xaf;
+    byte PLAYER_START_ITEM_COOLDOWN_PACKET = (byte) 0xb0;
+    byte SCRIPT_MESSAGE_PACKET = (byte) 0xb1;
+    byte CODE_BUILDER_SOURCE_PACKET = (byte) 0xb2;
+    byte TICKING_AREAS_LOAD_STATUS_PACKET = (byte) 0xb3;
+    byte DIMENSION_DATA_PACKET = (byte) 0xb4;
+    byte AGENT_ACTION_EVENT_PACKET = (byte) 0xb5;
+    byte CHANGE_MOB_PROPERTY_PACKET = (byte) 0xb6;
+    byte LESSON_PROGRESS_PACKET = (byte) 0xb7;
+    byte REQUEST_ABILITY_PACKET = (byte) 0xb8;
+    byte REQUEST_PERMISSIONS_PACKET = (byte) 0xb9;
+    byte TOAST_REQUEST_PACKET = (byte) 0xba;
+    byte UPDATE_ABILITIES_PACKET = (byte) 0xbb;
+    byte UPDATE_ADVENTURE_SETTINGS_PACKET = (byte) 0xbc;
+    byte DEATH_INFO_PACKET = (byte) 0xbd;
+    byte GAME_TEST_REQUEST_PACKET = (byte) 0xc2;
+    byte GAME_TEST_RESULTS_PACKET = (byte) 0xc3;
+    byte UPDATE_CLIENT_INPUT_LOCKS_PACKET = (byte) 0xc4;
+    byte CLIENT_CHEAT_ABILITY_PACKET = (byte) 0xc5;
+    byte CAMERA_PRESETS_PACKET = (byte) 0xc6;
+    byte UNLOCKED_RECIPES_PACKET = (byte) 0xc7;
 }
